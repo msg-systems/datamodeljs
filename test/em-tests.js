@@ -1,5 +1,5 @@
 /*
- **  msgTimeSheet ~ msg Time Accounting Frontend Application
+ **  DatamodelJS - Entity management
  **  Design and Development by msg Applied Technology Research
  **  Copyright (c) 2013 msg systems ag (http://www.msg-systems.com/)
  */

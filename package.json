@@ -1,0 +1,44 @@
+{
+    "name":        "datamodeljs",
+    "homepage":    "https://github.com/msg-systems/datamodeljs",
+    "description": "This library handles entity like javascript objects. Allowing relationships between those objects. Also allowing bi-directional relationships. Tracking states (changed, new, deleted) of those objects.",
+    "version":     "1.0.0",
+    "license":     "MIT",
+    "author": {
+        "name":    "Jochen Hoertreiter",
+        "email":   "jochen.hoertreiter@googlemail.com",
+        "url":     "https://github.com/JochenHoertreiter"
+    },
+    "keywords": [
+        "data",
+        "model",
+        "datamodel",
+        "json",
+        "entity",
+        "entity mananger"
+    ],
+    "repository": {
+        "type": "git",
+        "url":  "https://github.com/msg-systems/datamodeljs.git"
+    },
+    "bugs": {
+        "url":  "https://github.com/msg-systems/datamodeljs/issues"
+    },
+    "main": "Gruntfile.js",
+    "devDependencies": {
+        "grunt":                "~0.4.5",
+        "grunt-cli":            "~0.1.13",
+        "grunt-contrib-jshint": "~0.11.2",
+        "grunt-contrib-clean":  "~0.6.0",
+        "grunt-execute":        "~0.2.2",
+        "should":               "7.1.1"
+    },
+    "peerDependencies": {
+        "grunt":                "~0.4.5"
+    },
+    "dependencies": {
+    },
+    "engines": {
+        "node":                 ">=0.10.0"
+    }
+}

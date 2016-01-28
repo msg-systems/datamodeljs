@@ -1,7 +1,7 @@
 /*
 **  datamodeljs
 **  Library for defining and managing entity objects.
-**  Copyright (c) 2015 msg systems ag (http://www.msg-systems.com)
+**  Copyright (c) 2013 - 2015 msg systems ag (http://www.msg-systems.com)
 **
 **  Contributors:
 **  see: https://github.com/msg-systems/datamodeljs/graphs/contributors
@@ -35,11 +35,11 @@ module.exports = function (grunt) {
                 jshintrc: "jshint.json"
             },
             gruntfile:   [ "Gruntfile.js" ],
-            sourcefiles: [ "datamodeljs/em.js" ]
+            sourcefiles: [ "datamodeljs/datamodel.js" ]
         },
         execute: {
             test: {
-                src: ["test/em-tests.js"]
+                src: ["test/datamodel-tests.js"]
             }
         },
         clean: {

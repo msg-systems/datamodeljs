@@ -1,17 +1,17 @@
 /*
  **  DatamodelJS - Entity management
  **  Design and Development by msg Applied Technology Research
- **  Copyright (c) 2013 msg systems ag (http://www.msg-systems.com/)
+ **  Copyright (c) 2013 - 2016 msg systems ag (http://www.msg-systems.com/)
  */
 
 /* global require: false */
 var should = require('should');
-var em = require("../datamodeljs/em.js");
+var datamodeljs = require("../datamodeljs/datamodel.js");
 // Unit Tests
 /* jshint immed: false*/
 
 // DataManager creation
-var dm = em.dm("default");
+var dm = datamodeljs.dm("default");
 should.exist(dm);
 //      _       __ _                      _               _
 //   __| | ___ / _(_)_ __   ___          | |__   __ _  __| |

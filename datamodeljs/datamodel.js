@@ -1,7 +1,7 @@
 /*
  **  DatamodelJS - Entity management
  **  Design and Development by msg Applied Technology Research
- **  Copyright (c) 2013 msg systems ag (http://www.msg-systems.com/)
+ **  Copyright (c) 2013 - 2016 msg systems ag (http://www.msg-systems.com/)
  */
 
 /*  Universal Module Definition (UMD)  */
@@ -9,11 +9,11 @@
     /* global define:false */
     /* global exports:false */
     if (typeof define === "function" && define.amd)
-        define('em', function () { return factory(root); });
+        define('datamodeljs', function () { return factory(root); });
     else if (typeof module === "object" && typeof exports === "object")
         module.exports = factory(root);
     else
-        root.em = factory(root);
+        root.datamodeljs = factory(root);
 }(this, function (root) {
     /*  create internal and external API  */
     var em = {};

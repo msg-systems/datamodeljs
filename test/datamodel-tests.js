@@ -282,6 +282,13 @@ should.exist(dm);
     should.exist(china);
     dm.isDeleted("Country", china).should.be.true;
 }).should.not.throw();
+//              Deletion of a non stub, non transient object with force
+(function () {
+    var japan = dm.create("Country", { id : "Japan", name : "Japan"});
+    dm.destroy("Country", japan, true);
+    japan = dm.findById("Country", "Japan")
+    should.not.exist(japan);
+}).should.not.throw();
 //              Deletion of an object already marked as deleted
 (function () {
     // china is created an example earlier

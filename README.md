@@ -138,13 +138,25 @@ Example:
 
 ## Deleting entity objects
 
-Deleting entity objects is possible using the `destroy` function.
+Deleting a single entity object is possible using the `destroy` function.
 
-        dataManager.destroy(String cls, Object obj) : void
+        dataManager.destroy(String cls, Object obj, [Boolean force]) : void
 
-The object will be immediatly removed from the `dataManager` if it was marked as `transient` entity. Otherwise it will be marked as `deleted`. This way the JavaScript application can still handle the deletion with a proper AJAX call.
+The object will be immediatly removed from the `dataManager` if it was marked as `transient` entity or if `force` is set to `true`. Otherwise it will be marked as `deleted`. This way the JavaScript application can still handle the deletion with a proper AJAX call.
 
-> __Conclusion__: If an entiy should be removed from the `dataManager` mark it as `transient` before using the `destroy` function. 
+Example: 
+
+	dm.destroy("Verweis", dm.findById("Verweis", 1))
+
+----------
+
+The deletion of all objects of a given entity class(`cls`) is possible using the `destroyAll` function.
+ 
+        dataManager.destroyAll(String cls) : void
+
+Example: 
+
+	dm.destroyAll("Knoten")
 
 ## Tracking and changing entity object states
 

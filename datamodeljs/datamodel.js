@@ -104,7 +104,7 @@
     /*  internal: data model methods  */
     _em.dm.getPrimaryFieldsForClass = function (cls) {
         var spec = this.entities[cls];
-        var ret = []
+        var ret = [];
         for (var field in spec) {
             if (!spec.hasOwnProperty(field))
                 continue;
@@ -135,9 +135,12 @@
                     case "boolean":
                         obj[field] = false;
                         break;
+                    case "object":
+                        obj[field] = {};
+                        break;
                     default:
                         if (dm.entities[specField.type] === undefined)
-                            throw _em.exception("dm:create", "class(" + field.type + ") is not defined. can not create object yet.");
+                            throw _em.exception("dm:create", "class(" + specField.type + ") is not defined. can not create object yet.");
                         obj[field] = undefined;
                         break;
                 }
@@ -153,11 +156,20 @@
     };
 
     _em.dm.getPrimaryKeyNameForClass = function (dm, cls) {
-        for (var field in dm.entities[cls]) {
-            var specField = dm.entities[cls][field];
-            if (specField.isKey)
-                return field;
+        var result = dm.entityPrimaryKeyFields[cls];
+        if (result === undefined) {
+            for (var field in dm.entities[cls]) {
+                if (!dm.entities[cls].hasOwnProperty(field))
+                    continue;
+                var specField = dm.entities[cls][field];
+                if (specField.isKey) {
+                    result = field;
+                    break;
+                }
+            }
+            dm.entityPrimaryKeyFields[cls] = result;
         }
+        return result;
     };
 
     _em.dm.getPrimaryKeyValueFromObject = function (dm, cls, obj) {
@@ -176,9 +188,11 @@
 
     _em.dm.setFlags = function (dm, cls, primaryKeyValue, flags) {
         if (dm.flags[cls].idx[primaryKeyValue] === undefined)
-            dm.flags[cls].idx[primaryKeyValue] = { isStub : false, isDeleted : false, isTransient : false, isDirty : false }
+            dm.flags[cls].idx[primaryKeyValue] = { isStub : false, isDeleted : false, isTransient : false, isDirty : false };
         var knownFlags = ["isStub", "isDeleted", "isTransient", "isDirty"];
         for (var idx in knownFlags) {
+            if (!knownFlags.hasOwnProperty(idx))
+                continue;
             var flag = knownFlags[idx];
             if (flags[flag] !== undefined && typeof flags[flag] === "boolean") {
                 dm.flags[cls].idx[primaryKeyValue][flag] = flags[flag];
@@ -223,7 +237,6 @@
             throw _em.exception(method, "missing arguments");
         else if (args.length > maxArgs)
             throw _em.exception(method, "too many arguments");
-        return;
     };
 
     _em.dm.sanityCheckClassArgument = function (method, dm, cls, failOnExistance) {
@@ -244,6 +257,7 @@
     /*  data model API  */
     _em.dm_api = function () {
         this.entities = {};
+        this.entityPrimaryKeyFields = {};
         this.entityObjs = {};
         this.flags = {};
         this._dm = _em._dm;
@@ -258,19 +272,21 @@
             var spec;
             var parentClsArr;
             if (arguments.length === 3) {
-                parentClsArr = arguments[1]
-                spec = arguments[2]
+                parentClsArr = arguments[1];
+                spec = arguments[2];
                 if (typeof parentClsArr === "string")
                     parentClsArr = [ parentClsArr ];
                 if (Object.prototype.toString.call(parentClsArr) !== Object.prototype.toString.call([]))
                     throw _em.exception(methodId, "invalid extend class argument - must be string or array");
                 for (var i = parentClsArr.length - 1; i >= 0; i--) {
-                    var tmpParentCls = parentClsArr[i]
+                    var tmpParentCls = parentClsArr[i];
                     if (this.entities[tmpParentCls] === undefined) {
                         throw _em.exception(methodId, "parent class(" + tmpParentCls + ") is not defined");
                     }
                     for (var key in this.entities[tmpParentCls]) {
-                        var value = this.entities[tmpParentCls][key]
+                        if (!this.entities[tmpParentCls].hasOwnProperty(key))
+                            continue;
+                        var value = this.entities[tmpParentCls][key];
                         if (spec[key] === undefined) {
                             spec[key] = value;
                         }
@@ -322,9 +338,7 @@
 
             this.entities[cls] = spec;
             this.entityObjs[cls] = { idx : {}, objs : []};
-            this.flags[cls] = { idx : {} }
-
-            return;
+            this.flags[cls] = { idx : {} };
         },
 
         /*  undefine an entity class  */
@@ -333,9 +347,9 @@
             _em.dm.sanityCheckArgumentsLength(methodId, 1, 1, arguments);
             _em.dm.sanityCheckClassArgument(methodId, this, cls, false);
             delete this.entities[cls];
+            delete this.entityPrimaryKeyFields[cls];
             delete this.entityObjs[cls];
             delete this.flags[cls];
-            return;
         },
 
         /*  create an entity object (based on a defined entity class)  */
@@ -348,7 +362,7 @@
             var obj;
             var objIsTransient = false;
             if (primaryKeyValue !== undefined) {
-                obj = this.findById(cls, primaryKeyValue)
+                obj = this.findById(cls, primaryKeyValue);
                 // Error when object exists and is not flagged as stub object
                 if (!this.isStub(cls, payload) && obj !== undefined) {
                     throw _em.exception(methodId, "Object of class(" + cls + ") with id(" + primaryKeyValue + ") already exists");
@@ -379,16 +393,18 @@
 
                 // arity fields are handled
                 if (specField.arity.type !== undefined) {
-                    payloadValue = _em.dm.getArityValue(payloadValue)
+                    payloadValue = _em.dm.getArityValue(payloadValue);
                     // sanity check for arity sizes
                     if (specField.arity.min !== undefined && specField.arity.min > payloadValue.length)
                         throw _em.exception(methodId, "missing relational objects - field(" + field + ") has arity '" +
-                            specField.arity.type + "' but only " + payloadValue.length + " object are provided")
+                            specField.arity.type + "' but only " + payloadValue.length + " object are provided");
                     if (specField.arity.max !== undefined && specField.arity.max < payloadValue.length)
                         throw _em.exception(methodId, "too many relational objects - field(" + field + ") has arity '" +
-                            specField.arity.type + "' but " + payloadValue.length + " object are provided")
+                            specField.arity.type + "' but " + payloadValue.length + " object are provided");
                     var resolvedPayloadValue = [];
                     for (var idx in payloadValue) {
+                        if (!payloadValue.hasOwnProperty(idx))
+                            continue;
                         var singleValue = payloadValue[idx];
                         switch (specField.type) {
                             case "string":
@@ -467,9 +483,9 @@
         },
 
         /*  destroy an entity object  */
-        destroy : function (cls, obj) {
+        destroy : function (cls, obj, force) {
             var methodId = "dm:destroy";
-            _em.dm.sanityCheckArgumentsLength(methodId, 2, 2, arguments);
+            _em.dm.sanityCheckArgumentsLength(methodId, 2, 3, arguments);
             _em.dm.sanityCheckClassArgument(methodId, this, cls, false);
             if (Object.prototype.toString.call(obj) !== Object.prototype.toString.call({}))
                 throw _em.exception(methodId, "Object must be of type " + Object.prototype.toString.call({}) +
@@ -484,7 +500,7 @@
             if (i > -1) {
                 var primaryKeyValue = _em.dm.getPrimaryKeyValueFromObject(this, cls, obj);
                 var isTransient = this.isTransient(cls, obj);
-                if (isTransient) {
+                if (isTransient || force === true) {
                     this.entityObjs[cls].objs.splice(i, 1);
                     delete this.entityObjs[cls].idx[primaryKeyValue];
                     delete this.flags[cls].idx[primaryKeyValue];
@@ -494,6 +510,14 @@
                 }
             } else
                 throw _em.exception(methodId, "object was not found in class (" + cls + ")");
+        },
+
+        destroyAll : function (cls) {
+            var methodId = "dm:destroyAll";
+            _em.dm.sanityCheckArgumentsLength(methodId, 1, 1, arguments);
+            _em.dm.sanityCheckClassArgument(methodId, this, cls, false);
+            this.entityObjs[cls] = { idx : {}, objs : []};
+            this.flags[cls] = { idx : {} }
         },
 
         /*  determine the primary key value of an entity object */
@@ -519,7 +543,9 @@
             _em.dm.sanityCheckClassArgument(methodId, this, cls, false);
             var result = [];
             for (var key in this.flags[cls].idx){
-                var objFlags = this.flags[cls].idx[key]
+                if (!this.flags[cls].idx.hasOwnProperty(key))
+                    continue;
+                var objFlags = this.flags[cls].idx[key];
                 if (objFlags.isTransient)
                     result.push(this.entityObjs[cls].idx[key])
             }
@@ -533,7 +559,9 @@
             _em.dm.sanityCheckClassArgument(methodId, this, cls, false);
             var result = [];
             for (var key in this.flags[cls].idx){
-                var objFlags = this.flags[cls].idx[key]
+                if (!this.flags[cls].idx.hasOwnProperty(key))
+                    continue;
+                var objFlags = this.flags[cls].idx[key];
                 if (objFlags.isDirty)
                     result.push(this.entityObjs[cls].idx[key])
             }
@@ -547,7 +575,9 @@
             _em.dm.sanityCheckClassArgument(methodId, this, cls, false);
             var result = [];
             for (var key in this.flags[cls].idx){
-                var objFlags = this.flags[cls].idx[key]
+                if (!this.flags[cls].idx.hasOwnProperty(key))
+                    continue;
+                var objFlags = this.flags[cls].idx[key];
                 if (objFlags.isDeleted)
                     result.push(this.entityObjs[cls].idx[key])
             }
@@ -561,7 +591,9 @@
             _em.dm.sanityCheckClassArgument(methodId, this, cls, false);
             var result = [];
             for (var key in this.flags[cls].idx){
-                var objFlags = this.flags[cls].idx[key]
+                if (!this.flags[cls].idx.hasOwnProperty(key))
+                    continue;
+                var objFlags = this.flags[cls].idx[key];
                 if (objFlags.isStub)
                     result.push(this.entityObjs[cls].idx[key])
             }
@@ -575,9 +607,7 @@
             _em.dm.sanityCheckClassArgument(methodId, this, cls, false);
 
             // primary field should only be only 1 field for now
-            var obj = this.entityObjs[cls].idx[id];
-
-            return obj;
+            return this.entityObjs[cls].idx[id];
         },
 
         /*  find entity objects by example object of an entity class  */
@@ -588,9 +618,13 @@
             var result = [];
             var allClassObj = this.findAll(cls);
             for (var idx in allClassObj) {
+                if (!allClassObj.hasOwnProperty(idx))
+                    continue;
                 var objectMatch = true;
                 var singleObj = allClassObj[idx];
                 for (var field in example) {
+                    if (!example.hasOwnProperty(field))
+                        continue;
                     var exampleFieldValue = example[field];
                     var specField = this.entities[cls][field];
                     if (specField === undefined)
@@ -602,6 +636,8 @@
                             throw _em.exception(methodId, "class(" + cls + ") has field(" + field + ") defined as '" + specField.type + "'. " +
                                 "Given object data at field(" + field + ") is an array'");
                         for (var arrayIdx in exampleFieldValue) {
+                            if (!exampleFieldValue.hasOwnProperty(arrayIdx))
+                                continue;
                             var subValue = exampleFieldValue[arrayIdx];
                             if (singleObj[field].indexOf(subValue) === -1) {
                                 objectMatch = false;
@@ -634,7 +670,7 @@
             var methodId = "dm:isTransient";
             _em.dm.sanityCheckArgumentsLength(methodId, 2, 3, arguments);
             _em.dm.sanityCheckClassArgument(methodId, this, cls, false);
-            var primaryKeyValue = _em.dm.getPrimaryKeyValueFromObject(this, cls, obj)
+            var primaryKeyValue = _em.dm.getPrimaryKeyValueFromObject(this, cls, obj);
             if (primaryKeyValue === "" || primaryKeyValue === undefined) {
                 var possibleObj = this.findByExample(cls, obj);
                 if (possibleObj.length === 0)
@@ -664,7 +700,7 @@
             var methodId = "dm:isDirty";
             _em.dm.sanityCheckArgumentsLength(methodId, 2, 3, arguments);
             _em.dm.sanityCheckClassArgument(methodId, this, cls, false);
-            var primaryKeyValue = _em.dm.getPrimaryKeyValueFromObject(this, cls, obj)
+            var primaryKeyValue = _em.dm.getPrimaryKeyValueFromObject(this, cls, obj);
             if (primaryKeyValue === "" || primaryKeyValue === undefined) {
                 var possibleObj = this.findByExample(cls, obj);
                 if (possibleObj.length === 0)
@@ -725,7 +761,7 @@
             var methodId = "dm:isStub";
             _em.dm.sanityCheckArgumentsLength(methodId, 2, 3, arguments);
             _em.dm.sanityCheckClassArgument(methodId, this, cls, false);
-            var primaryKeyValue = _em.dm.getPrimaryKeyValueFromObject(this, cls, obj)
+            var primaryKeyValue = _em.dm.getPrimaryKeyValueFromObject(this, cls, obj);
             if (primaryKeyValue === "" || primaryKeyValue === undefined) {
                 var possibleObj = this.findByExample(cls, obj);
                 if (possibleObj.length === 0)
@@ -783,16 +819,18 @@
 
                     // arity fields are handled
                     if (specField.arity.type !== undefined) {
-                        payloadValue = _em.dm.getArityValue(payloadValue)
+                        payloadValue = _em.dm.getArityValue(payloadValue);
                         // sanity check for arity sizes
                         if (specField.arity.min !== undefined && specField.arity.min > payloadValue.length)
                             throw _em.exception(methodId, "missing relational objects - field(" + field + ") has arity '" +
-                                specField.arity.type + "' but only " + payloadValue.length + " object are provided")
+                                specField.arity.type + "' but only " + payloadValue.length + " object are provided");
                         if (specField.arity.max !== undefined && specField.arity.max < payloadValue.length)
                             throw _em.exception(methodId, "too many relational objects - field(" + field + ") has arity '" +
-                                specField.arity.type + "' but " + payloadValue.length + " object are provided")
+                                specField.arity.type + "' but " + payloadValue.length + " object are provided");
                         var resolvedPayloadValue = [];
                         for (var idx in payloadValue) {
+                            if (!payloadValue.hasOwnProperty(idx))
+                                continue;
                             var singleValue = payloadValue[idx];
                             switch (specField.type) {
                                 case "string":
@@ -855,11 +893,11 @@
 
         /*  dump to console all entities of all entity classes in entire data model  */
         dump : function () {
-            console.log("=================\nDefined entities:\n=================")
+            console.log("=================\nDefined entities:\n=================");
             console.log(this.entities);
-            console.log("================\nDefined objects:\n================")
+            console.log("================\nDefined objects:\n================");
             console.log(this.entityObjs);
-            console.log("=============\nObject flags:\n=============")
+            console.log("=============\nObject flags:\n=============");
             console.log(this.flags);
         }
     };

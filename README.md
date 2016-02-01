@@ -19,14 +19,14 @@ In order to be able to handle complex business objects *datamodeljs* implements 
 
 Entities created with *datamodeljs* know their entity class name:
 
-1. ___className__ - the string representation of the entities class name (as declared with the `define` function)
+1. `_className` - the string representation of the entities class name (as declared with the `define` function)
 
 Entities created with *datamodeljs* also can track four different states:
 
-1. ___isDirty__ -   has the entity changed on client side since it load time
-2. ___isDeleted__ - is the entity marked for deletion on client side 
-3. ___isTransient__ - was the entity created newly on client side
-4. ___isStub__ - is the entity referenced by another entities relationship, but the entity itself was not loaded by now	  
+1. `_isDirty` -   has the entity changed on client side since it load time
+2. `_isDeleted` - is the entity marked for deletion on client side 
+3. `_isTransient` - was the entity created newly on client side
+4. `_isStub` - is the entity referenced by another entities relationship, but the entity itself was not loaded by now	  
 
 In most cases a dirty entity leads to an PUT call in the backend. A deleted entity leads a DELETE call. A transient entity results in a POST call and a stub entity should be loaded using a GET call. Mapping this is not part of *datamodeljs* since it has not the goal to cover the AJAX requests. Mapping the entity states to proper AJAX requests is the applications task.
 

@@ -46,6 +46,12 @@ should.exist(dm);
 (function () {dm.define("Car", { id : "string" }) }).should.throw(/^.*?class must contain exactly one field marked as primary field.*?$/);
 //              more then one primary keys
 (function () {dm.define("Car", { id : "@string", type : "@string" }) }).should.throw(/^.*?class must contain exactly one field marked as primary field.*?$/);
+//              using reserved keywords
+(function () {dm.define("Keyword", { id : "@string", _className : "string" }) }).should.throw(/^.*?invalid class spec - attribute '_className' is a reserved keyword.*?$/);
+(function () {dm.define("Keyword", { id : "@string", _isTransient : "string" }) }).should.throw(/^.*?invalid class spec - attribute '_isTransient' is a reserved keyword.*?$/);
+(function () {dm.define("Keyword", { id : "@string", _isStub : "string" }) }).should.throw(/^.*?invalid class spec - attribute '_isStub' is a reserved keyword.*?$/);
+(function () {dm.define("Keyword", { id : "@string", _isDirty : "string" }) }).should.throw(/^.*?invalid class spec - attribute '_isDirty' is a reserved keyword.*?$/);
+(function () {dm.define("Keyword", { id : "@string", _isDeleted : "string" }) }).should.throw(/^.*?invalid class spec - attribute '_isDeleted' is a reserved keyword.*?$/);
 //      _       __ _                                            _
 //   __| | ___ / _(_)_ __   ___            __ _  ___   ___   __| |
 //  / _` |/ _ \ |_| | '_ \ / _ \  _____   / _` |/ _ \ / _ \ / _` |
@@ -56,7 +62,7 @@ should.exist(dm);
     dm.define("Country", {
         id : '@string',
         name : 'string'
-    })
+    });
 
     dm.define("OrgUnit", {
         id : '@string',
@@ -158,73 +164,88 @@ should.exist(dm);
 // | (__| | |  __/ (_| | ||  __/ |_____| | (_| | (_) | (_) | (_| |
 //  \___|_|  \___|\__,_|\__\___|          \__, |\___/ \___/ \__,_|
 //                                        |___/
-(function () {
-    var germany = dm.create("Country", {
-        id : "DE",
-        name : "Deutschland"
-    })
+var germany = dm.create("Country", {
+    id: "DE",
+    name: "Deutschland"
+});
 
-    var msg = dm.create("OrgUnit", {
-        id : "msg",
-        name : "msg systems ag",
-        owner : "HZ",
-        country : germany
-    });
+var msg = dm.create("OrgUnit", {
+    id: "msg",
+    name: "msg systems ag",
+    owner: "HZ",
+    country: germany
+});
 
-    dm.create("OrgUnit", {
-        id : "msgCH",
-        name : "msg Schweiz",
-        owner : "HZ",
-        country : "CH"
-    });
+dm.create("OrgUnit", {
+    id: "msgCH",
+    name: "msg Schweiz",
+    owner: "HZ",
+    country: "CH"
+});
 
-    var xt = dm.create("OrgUnit", {
-        id : "XT",
-        name : "msg Applied Technology Research",
-        owner : "MWS",
-        parent : msg,
-        country : "DE"
-    });
+var xt = dm.create("OrgUnit", {
+    id: "XT",
+    name: "msg Applied Technology Research",
+    owner: "MWS",
+    parent: msg,
+    country: "DE"
+});
 
-    var mws = dm.create("Person", {
-        id : "MWS",
-        firstName : "Mark-W.",
-        lastName : "Schmidt",
-        born : 1971,
-        organizations : [ xt ],
-        hobbies : ["motorbike ride"]
-    });
+var mws = dm.create("Person", {
+    id: "MWS",
+    firstName: "Mark-W.",
+    lastName: "Schmidt",
+    born: 1971,
+    organizations: [xt],
+    hobbies: ["motorbike ride"]
+});
 
-    var rse = dm.create("Hacker", {
-        id : "RSE",
-        firstName : "Ralf",
-        middleInitial : "S",
-        lastName : "Engelschall",
-        born : 1972,
-        hobbies : [ "Foo", "Bar" ],
-        supervisor : "MWS",
-        proxies : [ mws, "JHO" ],
-        organizations : [ "XT" ],
-        hackerCode : "what?"
-    });
+var rse = dm.create("Hacker", {
+    id: "RSE",
+    firstName: "Ralf",
+    middleInitial: "S",
+    lastName: "Engelschall",
+    born: 1972,
+    hobbies: ["Foo", "Bar"],
+    supervisor: "MWS",
+    proxies: [mws, "JHO"],
+    organizations: ["XT"],
+    hackerCode: "what?"
+});
 
-    dm.create("Person", {
-        id : "JHO",
-        firstName : "Jochen",
-        lastName : "Hoertreiter",
-        supervisor : rse,
-        organizations : [ xt ],
-        hobbies : [""]
-    });
+dm.create("Person", {
+    id: "JHO",
+    firstName: "Jochen",
+    lastName: "Hoertreiter",
+    supervisor: rse,
+    organizations: [xt],
+    hobbies: [""]
+});
 
-    var biebl = dm.create("Person", {firstName : "Biebl"});
-    var agile = dm.create("OrgUnit", {
-        id : "CoC Agile",
-        owner : [biebl]
-    });
-    agile.owner.should.have.length(1);
-    agile.owner[0].should.have.property("firstName", "Biebl");
-}).should.not.throw();
+var biebl = dm.create("Person", {firstName: "Biebl"});
+var agile = dm.create("OrgUnit", {
+    id: "CoC Agile",
+    owner: [biebl]
+});
+agile.owner.should.have.length(1);
+agile.owner[0].should.have.property("firstName", "Biebl");
+(agile.country === undefined).should.be.true();
+
+dm.create("Person", {
+    id: "LTU",
+    firstName: "Linda",
+    lastName: "Turke",
+    supervisor: "RSE",
+    organizations: ["XT"]
+}).should.have.ownProperty("_className");
+dm.findById("Person", "LTU")._className.should.be.equal("Person");
+
+JSON.stringify(dm.create("Person", {
+    id: "LDA",
+    firstName: "Lisa",
+    lastName: "Daske"
+})).should.match(/^((?!_className).)*$/);
+
 //      _           _                             _               _
 //   __| | ___  ___| |_ _ __ ___  _   _          | |__   __ _  __| |
 //  / _` |/ _ \/ __| __| '__/ _ \| | | |  _____  | '_ \ / _` |/ _` |
@@ -280,7 +301,7 @@ should.exist(dm);
     dm.destroy("Country", china);
     china = dm.findById("Country", "China")
     should.exist(china);
-    dm.isDeleted("Country", china).should.be.true;
+    dm.isDeleted("Country", china).should.be.true();
 }).should.not.throw();
 //              Deletion of a non stub, non transient object with force
 (function () {
@@ -297,24 +318,23 @@ should.exist(dm);
     dm.destroy("Country", china);
     dm.destroy("Country", china);
     dm.destroy("Country", china);
-    dm.isDeleted("Country", china).should.be.true;
+    dm.isDeleted("Country", china).should.be.true();
 }).should.not.throw();
 //              Deletion of a transient object
-(function () {
-    var nameOfBuxdehude = "msg Buxdehude";
-    // OrgUnit without a primary id is marked as transient
-    var buxdehude = dm.create("OrgUnit", {
-        name : nameOfBuxdehude,
-        owner : "HZ",
-        country : "AT"
-    });
-    dm.isTransient("OrgUnit", buxdehude).should.be.true;
-    dm.destroy("OrgUnit", buxdehude);
-    var allOrgUnits = dm.findAll("OrgUnit");
-    for (var idx in allOrgUnits) {
-        allOrgUnits[idx].name.should.not.equal(nameOfBuxdehude);
-    }
-}).should.not.throw();
+var nameOfBuxdehude = "msg Buxdehude";
+// OrgUnit without a primary id is marked as transient
+var buxdehude = dm.create("OrgUnit", {
+    name: nameOfBuxdehude,
+    owner: "HZ",
+    country: "AT"
+});
+dm.isTransient("OrgUnit", buxdehude).should.be.true();
+buxdehude._isTransient.should.be.true();
+dm.destroy("OrgUnit", buxdehude);
+var allOrgUnits = dm.findAll("OrgUnit");
+for (var idx in allOrgUnits) {
+    allOrgUnits[idx].name.should.not.equal(nameOfBuxdehude);
+}
 //   __ _           _   _   _ _           _               _
 //  / _(_)_ __   __| | /_\ | | |         | |__   __ _  __| |
 // | |_| | '_ \ / _` |//_\\| | |  _____  | '_ \ / _` |/ _` |
@@ -429,19 +449,17 @@ should.exist(dm);
 // |  _| | | | | (_| / \/  \ |_| //__  >  < (_| | | | | | | |_) | |  __/ |_____| | (_| | (_) | (_) | (_| |
 // |_| |_|_| |_|\__,_\_____/\__, \__/ /_/\_\__,_|_| |_| |_| .__/|_|\___|          \__, |\___/ \___/ \__,_|
 //                          |___/                         |_|                     |___/
-(function () {
-    dm.findByExample("Country", {name : "Deutschland"}).should.not.have.length(0);
-    dm.findByExample("Country", {name : ""}).should.not.have.length(0);
-    dm.findByExample("Person", {firstName : ""}).should.not.have.length(0);
-    dm.findByExample("Person", {hobbies : []}).should.not.have.length(0);
-    dm.findByExample("Person", {hobbies : [""]}).should.not.have.length(0);
-    dm.findByExample("Person", {hobbies : ["skate"]}).should.have.length(0);
-    dm.findByExample("Person", {hobbies : ["motorbike ride"]}).should.not.have.length(0);
-    dm.findByExample("Person", {hobbies : ["motorbike ride", "skate"]}).should.have.length(0);
-    dm.findByExample("Person", {organizations : dm.findById("OrgUnit", "XT")}).should.not.have.length(0);
-    dm.findByExample("Person", {organizations : [dm.findById("OrgUnit", "XT"), dm.findById("OrgUnit", "msg")]}).should.have.length(0);
-    dm.findByExample("Country", { id : "" }).should.have.length(0);
-}).should.not.throw();
+dm.findByExample("Country", {name: "Deutschland"}).should.not.have.length(0);
+dm.findByExample("Country", {name: ""}).should.not.have.length(0);
+dm.findByExample("Person", {firstName: ""}).should.not.have.length(0);
+dm.findByExample("Person", {hobbies: []}).should.not.have.length(0);
+dm.findByExample("Person", {hobbies: [""]}).should.not.have.length(0);
+dm.findByExample("Person", {hobbies: ["skate"]}).should.have.length(0);
+dm.findByExample("Person", {hobbies: ["motorbike ride"]}).should.not.have.length(0);
+dm.findByExample("Person", {hobbies: ["motorbike ride", "skate"]}).should.have.length(0);
+dm.findByExample("Person", {organizations: dm.findById("OrgUnit", "XT")}).should.not.have.length(0);
+dm.findByExample("Person", {organizations: [dm.findById("OrgUnit", "XT"), dm.findById("OrgUnit", "msg")]}).should.have.length(0);
+dm.findByExample("Country", {id: ""}).should.have.length(0);
 //  _     _____                     _            _             _               _
 // (_)___/__   \_ __ __ _ _ __  ___(_) ___ _ __ | |_          | |__   __ _  __| |
 // | / __| / /\/ '__/ _` | '_ \/ __| |/ _ \ '_ \| __|  _____  | '_ \ / _` |/ _` |
@@ -484,13 +502,17 @@ should.exist(dm);
 //                                                             |___/
 (function () {
     var misterX = dm.create("Person", {firstName : "Mister X"});
-    dm.isTransient("Person", misterX).should.be.true;
-    dm.isTransient("Person", {firstName : "Mister X"}).should.be.true;
-    dm.destroy("Person", misterX)
-    dm.isTransient("Person", dm.findById("Person", "JHO")).should.be.false;
-    dm.isTransient("Person", dm.findById("Person", "JHO"), true).should.be.true;
-    dm.isTransient("Person", dm.findById("Person", "JHO")).should.be.true;
-    dm.isTransient("Person", dm.findById("Person", "JHO"), false).should.be.false;
+    dm.isTransient("Person", misterX).should.be.true();
+    misterX._isTransient.should.be.true();
+    dm.isTransient("Person", {firstName : "Mister X"}).should.be.true();
+    dm.destroy("Person", misterX);
+    dm.isTransient("Person", dm.findById("Person", "JHO")).should.be.false();
+    dm.findById("Person", "JHO")._isTransient.should.be.false();
+    dm.isTransient("Person", dm.findById("Person", "JHO"), true).should.be.true();
+    dm.findById("Person", "JHO")._isTransient.should.be.true();
+    dm.isTransient("Person", dm.findById("Person", "JHO")).should.be.true();
+    dm.isTransient("Person", dm.findById("Person", "JHO"), false).should.be.false();
+    dm.findById("Person", "JHO")._isTransient.should.be.false();
 }).should.not.throw();
 
 //  _        ___ _      _                   _               _
@@ -538,16 +560,20 @@ should.exist(dm);
         firstName : "Kevin",
         born : 1981
     });
-    dm.isDirty("Person", dirtyObj).should.be.false;
-    dm.isDirty("Person", {id : "Dirt"}).should.be.false;
-    dm.isDirty("Person", {firstName : "Kevin"}).should.be.false;
+    dm.isDirty("Person", dirtyObj).should.be.false();
+    dirtyObj._isDirty.should.be.false();
+    dm.isDirty("Person", {id : "Dirt"}).should.be.false();
+    dm.isDirty("Person", {firstName : "Kevin"}).should.be.false();
     dirtyObj.hobbies = ["tennis", "football"];
-    dm.isDirty("Person", dirtyObj, true).should.be.true;
-    dm.isDirty("Person", dirtyObj).should.be.true;
-    dm.isDirty("Person", {id : "Dirt"}).should.be.true;
-    dm.isDirty("Person", {hobbies : ["tennis", "football"]}).should.be.true;
-    dm.isDirty("Person", {id : "Dirt"}, false).should.be.false;
-    dm.isDirty("Person", {hobbies : ["tennis", "football"]}, true).should.be.true;
+    dm.isDirty("Person", dirtyObj, true).should.be.true();
+    dirtyObj._isDirty.should.be.true();
+    dm.isDirty("Person", dirtyObj).should.be.true();
+    dm.isDirty("Person", {id : "Dirt"}).should.be.true();
+    dm.isDirty("Person", {hobbies : ["tennis", "football"]}).should.be.true();
+    dm.isDirty("Person", {id : "Dirt"}, false).should.be.false();
+    dirtyObj._isDirty.should.be.false();
+    dm.isDirty("Person", {hobbies : ["tennis", "football"]}, true).should.be.true();
+    dirtyObj._isDirty.should.be.true();
 }).should.not.throw();
 //  _      __ _         _               _               _
 // (_)___ / _\ |_ _   _| |__           | |__   __ _  __| |
@@ -592,19 +618,23 @@ should.exist(dm);
     dm.create("OrgUnit", {id : "stubTest", owner : "HansDampf"});
     var stubTest = dm.findById("Person", "HansDampf");
     // ask known object
-    dm.isStub("Person", stubTest).should.be.true;
+    dm.isStub("Person", stubTest).should.be.true();
+    stubTest._isStub.should.be.true();
     // ask by id
-    dm.isStub("Person", {id : "HansDampf"}).should.be.true;
-    stubTest = dm.create("Person", {
+    dm.isStub("Person", {id : "HansDampf"}).should.be.true();
+    var stubTest1 = dm.create("Person", {
         id : "HansDampf",
         firstName : "Hans Richard"
-    })
+    });
+    stubTest._isStub.should.be.false();
+    stubTest.should.be.equal(stubTest1);
     // ask known object
-    dm.isStub("Person", stubTest).should.be.false;
+    dm.isStub("Person", stubTest1).should.be.false();
+    stubTest1._isStub.should.be.false();
     // ask by id
-    dm.isStub("Person", {id : "HansDampf"}).should.be.false;
+    dm.isStub("Person", {id : "HansDampf"}).should.be.false();
     // ask by example
-    dm.isStub("Person", {firstName : "Hans Richard"}).should.be.false;
+    dm.isStub("Person", {firstName : "Hans Richard"}).should.be.false();
 }).should.not.throw();
 //  _        ___     _      _           _           _               _
 // (_)___   /   \___| | ___| |_ ___  __| |         | |__   __ _  __| |
@@ -648,19 +678,21 @@ should.exist(dm);
 (function () {
     var deleteTest = dm.create("Country", {id : "SWE", name : "Sweden"});
     // ask known object
-    dm.isDeleted("Country", deleteTest).should.be.false;
+    dm.isDeleted("Country", deleteTest).should.be.false();
+    deleteTest._isDeleted.should.be.false();
     // ask object by id
-    dm.isDeleted("Country", {id : "SWE"}).should.be.false;
+    dm.isDeleted("Country", {id : "SWE"}).should.be.false();
     // ask object by example
-    dm.isDeleted("Country", {name : "Sweden"}).should.be.false;
+    dm.isDeleted("Country", {name : "Sweden"}).should.be.false();
 
     dm.destroy("Country", deleteTest);
     // ask known object
-    dm.isDeleted("Country", deleteTest).should.be.true;
+    dm.isDeleted("Country", deleteTest).should.be.true();
+    deleteTest._isDeleted.should.be.true();
     // ask object by id
-    dm.isDeleted("Country", {id : "SWE"}).should.be.true;
+    dm.isDeleted("Country", {id : "SWE"}).should.be.true();
     // ask object by example
-    dm.isDeleted("Country", {name : "Sweden"}).should.be.true;
+    dm.isDeleted("Country", {name : "Sweden"}).should.be.true();
 }).should.not.throw();
 //  _                            _             _               _
 // (_)_ __ ___  _ __   ___  _ __| |_          | |__   __ _  __| |

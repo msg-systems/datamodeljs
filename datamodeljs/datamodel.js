@@ -115,38 +115,52 @@
         return ret;
     };
 
-    _em.dm.createInitialObjectForClass = function (dm, cls) {
-        // create a new object major in this method and considered as the result object
-        var obj = {};
-        // initialize the obj for each spec field in the class spec with a default value
-        for (var field in dm.entities[cls]) {
-            var specField = dm.entities[cls][field];
-            // any arity is considered as arrayed value to simplify things
-            if (specField.arity.type) {
-                obj[field] = [];
-            } else {
-                switch (specField.type) {
-                    case "string":
-                        obj[field] = "";
-                        break;
-                    case "number":
-                        obj[field] = 0;
-                        break;
-                    case "boolean":
-                        obj[field] = false;
-                        break;
-                    case "object":
-                        obj[field] = {};
-                        break;
-                    default:
-                        if (dm.entities[specField.type] === undefined)
-                            throw _em.exception("dm:create", "class(" + specField.type + ") is not defined. can not create object yet.");
-                        obj[field] = undefined;
-                        break;
+    _em.dm.createEntityClass = function (dm, cls) {
+        // return a new function major in this method
+        return function(){
+            var obj = {}, specField, defaultValue;
+            Object.defineProperty(obj, "_className", {value: cls, configurable: false, enumerable: false, writable: false});
+            Object.defineProperty(obj, "_isTransient", {value: false, configurable: false, enumerable: false, writable: true});
+            Object.defineProperty(obj, "_isDirty", {value: false, configurable: false, enumerable: false, writable: true});
+            Object.defineProperty(obj, "_isStub", {value: false, configurable: false, enumerable: false, writable: true});
+            Object.defineProperty(obj, "_isDeleted", {value: false, configurable: false, enumerable: false, writable: true});
+            // initialize the obj for each spec field in the class spec with a default value
+            for (var field in dm.entities[cls]) {
+                specField = dm.entities[cls][field];
+                defaultValue = undefined;
+                // any arity is considered as arrayed value to simplify things
+                if (specField.arity.type) {
+                    defaultValue = [];
+                } else {
+                    switch (specField.type) {
+                        case "string":
+                            defaultValue = "";
+                            break;
+                        case "number":
+                            defaultValue = null;
+                            break;
+                        case "boolean":
+                            defaultValue = false;
+                            break;
+                        case "object":
+                            defaultValue = {};
+                            break;
+                        default:
+                            if (dm.entities[specField.type] === undefined)
+                                throw _em.exception("dm:create", "class(" + specField.type + ") is not defined. can not create object yet.");
+                            // defaultValue is by default undefined - this is what we want in this case
+                            break;
+                    }
                 }
+                Object.defineProperty(obj, field, {value: defaultValue, configurable: true, enumerable: true, writable: true});
             }
-        }
-        return obj;
+            return obj;
+        };
+    };
+
+    _em.dm.createInitialObjectForClass = function (dm, cls) {
+        // create a new object of the defined entityClass - a function using Object.defineProperty
+        return new dm.entityClasses[cls]();
     };
 
     _em.dm.getArityValue = function (value) {
@@ -182,54 +196,8 @@
         obj[primaryKeyField] = primaryKeyValue;
         dm.entityObjs[cls].idx[primaryKeyValue] = obj;
         dm.entityObjs[cls].objs.push(obj);
-        this.flagObjectAsStub(dm, cls, obj);
+        obj._isStub = true;
         return obj;
-    };
-
-    _em.dm.setFlags = function (dm, cls, primaryKeyValue, flags) {
-        if (dm.flags[cls].idx[primaryKeyValue] === undefined)
-            dm.flags[cls].idx[primaryKeyValue] = { isStub : false, isDeleted : false, isTransient : false, isDirty : false };
-        var knownFlags = ["isStub", "isDeleted", "isTransient", "isDirty"];
-        for (var idx in knownFlags) {
-            if (!knownFlags.hasOwnProperty(idx))
-                continue;
-            var flag = knownFlags[idx];
-            if (flags[flag] !== undefined && typeof flags[flag] === "boolean") {
-                dm.flags[cls].idx[primaryKeyValue][flag] = flags[flag];
-            }
-        }
-    };
-
-    _em.dm.flagObjectAsStub = function (dm, cls, obj) {
-        this.setFlags(dm, cls, this.getPrimaryKeyValueFromObject(dm, cls, obj), { isStub : true });
-    };
-
-    _em.dm.unflagObjectAsStub = function (dm, cls, obj) {
-        this.setFlags(dm, cls, this.getPrimaryKeyValueFromObject(dm, cls, obj), { isStub : false });
-    };
-
-    _em.dm.flagObjectAsDeleted = function (dm, cls, obj) {
-        this.setFlags(dm, cls, this.getPrimaryKeyValueFromObject(dm, cls, obj), { isDeleted : true });
-    };
-
-    _em.dm.unflagObjectAsDeleted = function (dm, cls, obj) {
-        this.setFlags(dm, cls, this.getPrimaryKeyValueFromObject(dm, cls, obj), { isDeleted : false });
-    };
-
-    _em.dm.flagObjectAsTransient = function (dm, cls, obj) {
-        this.setFlags(dm, cls, this.getPrimaryKeyValueFromObject(dm, cls, obj), { isTransient : true });
-    };
-
-    _em.dm.unflagObjectAsTransient = function (dm, cls, obj) {
-        this.setFlags(dm, cls, this.getPrimaryKeyValueFromObject(dm, cls, obj), { isTransient : false });
-    };
-
-    _em.dm.flagObjectAsDirty = function (dm, cls, obj) {
-        this.setFlags(dm, cls, this.getPrimaryKeyValueFromObject(dm, cls, obj), { isDirty : true });
-    };
-
-    _em.dm.unflagObjectAsDirty = function (dm, cls, obj) {
-        this.setFlags(dm, cls, this.getPrimaryKeyValueFromObject(dm, cls, obj), { isDirty : false });
     };
 
     _em.dm.sanityCheckArgumentsLength = function (method, minArgs, maxArgs, args) {
@@ -257,9 +225,9 @@
     /*  data model API  */
     _em.dm_api = function () {
         this.entities = {};
+        this.entityClasses = {};
         this.entityPrimaryKeyFields = {};
         this.entityObjs = {};
-        this.flags = {};
         this._dm = _em._dm;
     };
     _em.dm_api.prototype = {
@@ -302,6 +270,16 @@
             for (var field in spec) {
                 if (!spec.hasOwnProperty(field))
                     continue;
+                if (field === "_className")
+                    throw _em.exception(methodId, "invalid class spec - attribute '_className' is a reserved keyword");
+                if (field === "_isTransient")
+                    throw _em.exception(methodId, "invalid class spec - attribute '_isTransient' is a reserved keyword");
+                if (field === "_isStub")
+                    throw _em.exception(methodId, "invalid class spec - attribute '_isStub' is a reserved keyword");
+                if (field === "_isDirty")
+                    throw _em.exception(methodId, "invalid class spec - attribute '_isDirty' is a reserved keyword");
+                if (field === "_isDeleted")
+                    throw _em.exception(methodId, "invalid class spec - attribute '_isDeleted' is a reserved keyword");
                 if (typeof spec[field] === "string") {
                     var type = spec[field];
                     var isKey = false;
@@ -337,8 +315,8 @@
                 throw _em.exception(methodId, "invalid class(" + cls + ") spec - class must contain exactly one field marked as primary field (@) but has " + keyCount);
 
             this.entities[cls] = spec;
+            this.entityClasses[cls] = _em.dm.createEntityClass(this, cls);
             this.entityObjs[cls] = { idx : {}, objs : []};
-            this.flags[cls] = { idx : {} };
         },
 
         /*  undefine an entity class  */
@@ -347,9 +325,9 @@
             _em.dm.sanityCheckArgumentsLength(methodId, 1, 1, arguments);
             _em.dm.sanityCheckClassArgument(methodId, this, cls, false);
             delete this.entities[cls];
+            delete this.entityClasses[cls];
             delete this.entityPrimaryKeyFields[cls];
             delete this.entityObjs[cls];
-            delete this.flags[cls];
         },
 
         /*  create an entity object (based on a defined entity class)  */
@@ -364,7 +342,7 @@
             if (primaryKeyValue !== undefined) {
                 obj = this.findById(cls, primaryKeyValue);
                 // Error when object exists and is not flagged as stub object
-                if (!this.isStub(cls, payload) && obj !== undefined) {
+                if (obj !== undefined && !obj._isStub) {
                     throw _em.exception(methodId, "Object of class(" + cls + ") with id(" + primaryKeyValue + ") already exists");
                 }
             } else {
@@ -410,6 +388,7 @@
                             case "string":
                             case "number":
                             case "boolean":
+                            case "object":
                                 _em.dm.sanityCheckFieldType(methodId, cls, field, specField.type, singleValue);
                                 resolvedPayloadValue.push(singleValue);
                                 break;
@@ -439,6 +418,7 @@
                         case "string":
                         case "number":
                         case "boolean":
+                        case "object":
                             _em.dm.sanityCheckFieldType(methodId, cls, field, specField.type, payloadValue);
                             obj[field] = payloadValue;
                             break;
@@ -464,19 +444,19 @@
                 throw _em.exception(methodId, "Parameter payload for object creation of class(" + cls + ") has no fields. Object creation failed.");
 
             if (objIsTransient) {
+                obj._isTransient = true;
                 // can only add object to our array, since it has no primaryKey value
                 // also flags cant be created due to missing primaryKey value
                 this.entityObjs[cls].objs.push(obj);
             } else {
                 primaryKeyValue = this.primaryKeyValue(cls, obj);
-                if (this.isStub(cls, obj)) {
+                if (obj._isStub) {
                     // unStub object if it was stub created somewhen before
-                    this.isStub(cls, obj, false);
+                    obj._isStub = false;
                 } else {
                     // otherwise push the object into the collections and initially set its flags
                     this.entityObjs[cls].idx[primaryKeyValue] = obj;
                     this.entityObjs[cls].objs.push(obj);
-                    _em.dm.setFlags(this, cls, primaryKeyValue, {});
                 }
             }
             return obj;
@@ -499,14 +479,12 @@
             }
             if (i > -1) {
                 var primaryKeyValue = _em.dm.getPrimaryKeyValueFromObject(this, cls, obj);
-                var isTransient = this.isTransient(cls, obj);
-                if (isTransient || force === true) {
+                if (obj._isTransient || force === true) {
                     this.entityObjs[cls].objs.splice(i, 1);
                     delete this.entityObjs[cls].idx[primaryKeyValue];
-                    delete this.flags[cls].idx[primaryKeyValue];
                 } else {
                     // real objects only get marked as deleted
-                    this.isDeleted(cls, obj, true);
+                    obj._isDeleted = true;
                 }
             } else
                 throw _em.exception(methodId, "object was not found in class (" + cls + ")");
@@ -517,7 +495,6 @@
             _em.dm.sanityCheckArgumentsLength(methodId, 1, 1, arguments);
             _em.dm.sanityCheckClassArgument(methodId, this, cls, false);
             this.entityObjs[cls] = { idx : {}, objs : []};
-            this.flags[cls] = { idx : {} }
         },
 
         /*  determine the primary key value of an entity object */
@@ -542,12 +519,12 @@
             _em.dm.sanityCheckArgumentsLength(methodId, 1, 1, arguments);
             _em.dm.sanityCheckClassArgument(methodId, this, cls, false);
             var result = [];
-            for (var key in this.flags[cls].idx){
-                if (!this.flags[cls].idx.hasOwnProperty(key))
+            for (var key in this.entityObjs[cls].idx){
+                if (!this.entityObjs[cls].idx.hasOwnProperty(key))
                     continue;
-                var objFlags = this.flags[cls].idx[key];
-                if (objFlags.isTransient)
-                    result.push(this.entityObjs[cls].idx[key])
+                var obj = this.entityObjs[cls].idx[key];
+                if (obj._isTransient)
+                    result.push(obj)
             }
             return result;
         },
@@ -558,12 +535,12 @@
             _em.dm.sanityCheckArgumentsLength(methodId, 1, 1, arguments);
             _em.dm.sanityCheckClassArgument(methodId, this, cls, false);
             var result = [];
-            for (var key in this.flags[cls].idx){
-                if (!this.flags[cls].idx.hasOwnProperty(key))
+            for (var key in this.entityObjs[cls].idx){
+                if (!this.entityObjs[cls].idx.hasOwnProperty(key))
                     continue;
-                var objFlags = this.flags[cls].idx[key];
-                if (objFlags.isDirty)
-                    result.push(this.entityObjs[cls].idx[key])
+                var obj = this.entityObjs[cls].idx[key];
+                if (obj._isDirty)
+                    result.push(obj)
             }
             return result;
         },
@@ -574,12 +551,12 @@
             _em.dm.sanityCheckArgumentsLength(methodId, 1, 1, arguments);
             _em.dm.sanityCheckClassArgument(methodId, this, cls, false);
             var result = [];
-            for (var key in this.flags[cls].idx){
-                if (!this.flags[cls].idx.hasOwnProperty(key))
+            for (var key in this.entityObjs[cls].idx){
+                if (!this.entityObjs[cls].idx.hasOwnProperty(key))
                     continue;
-                var objFlags = this.flags[cls].idx[key];
-                if (objFlags.isDeleted)
-                    result.push(this.entityObjs[cls].idx[key])
+                var obj = this.entityObjs[cls].idx[key];
+                if (obj._isDeleted)
+                    result.push(obj)
             }
             return result;
         },
@@ -590,12 +567,12 @@
             _em.dm.sanityCheckArgumentsLength(methodId, 1, 1, arguments);
             _em.dm.sanityCheckClassArgument(methodId, this, cls, false);
             var result = [];
-            for (var key in this.flags[cls].idx){
-                if (!this.flags[cls].idx.hasOwnProperty(key))
+            for (var key in this.entityObjs[cls].idx){
+                if (!this.entityObjs[cls].idx.hasOwnProperty(key))
                     continue;
-                var objFlags = this.flags[cls].idx[key];
-                if (objFlags.isStub)
-                    result.push(this.entityObjs[cls].idx[key])
+                var obj = this.entityObjs[cls].idx[key];
+                if (obj._isStub)
+                    result.push(obj)
             }
             return result;
         },
@@ -670,29 +647,18 @@
             var methodId = "dm:isTransient";
             _em.dm.sanityCheckArgumentsLength(methodId, 2, 3, arguments);
             _em.dm.sanityCheckClassArgument(methodId, this, cls, false);
-            var primaryKeyValue = _em.dm.getPrimaryKeyValueFromObject(this, cls, obj);
-            if (primaryKeyValue === "" || primaryKeyValue === undefined) {
-                var possibleObj = this.findByExample(cls, obj);
-                if (possibleObj.length === 0)
-                    throw _em.exception(methodId, "Can not find an object that matches the given obj. Try using findByExample yourself before calling isTransient.");
-                else if (possibleObj.length > 1)
-                    throw _em.exception(methodId, "Object is ambiguous, found " + possibleObj.length + " matches. Try using findByExample yourself before calling isTransient.");
-                else {
-                    primaryKeyValue = _em.dm.getPrimaryKeyValueFromObject(this, cls, possibleObj[0]);
-                    if (primaryKeyValue === "" || primaryKeyValue === undefined)
-                        return true;
-                }
-            }
+            var possibleObj = this.findByExample(cls, obj);
+            if (possibleObj.length === 0)
+                throw _em.exception(methodId, "Can not find an object that matches the given obj. Try using findByExample yourself before calling isTransient.");
+            else if (possibleObj.length > 1)
+                throw _em.exception(methodId, "Object is ambiguous, found " + possibleObj.length + " matches. Try using findByExample yourself before calling isTransient.");
+
             if (arguments.length === 3) {
                 if (typeof val !== "boolean")
                     throw _em.exception(methodId, "Object value must be of type boolean but is " + typeof val + ".");
-                _em.dm.setFlags(this, cls, primaryKeyValue, { isTransient : val });
+                possibleObj[0]._isTransient = val;
             }
-            var flags = this.flags[cls].idx[primaryKeyValue];
-            if (flags === undefined)
-                return false;
-            else
-                return flags.isTransient;
+            return possibleObj[0]._isTransient;
         },
 
         /*  check (or set) whether entity object is dirty (fields modified since last save)  */
@@ -700,29 +666,18 @@
             var methodId = "dm:isDirty";
             _em.dm.sanityCheckArgumentsLength(methodId, 2, 3, arguments);
             _em.dm.sanityCheckClassArgument(methodId, this, cls, false);
-            var primaryKeyValue = _em.dm.getPrimaryKeyValueFromObject(this, cls, obj);
-            if (primaryKeyValue === "" || primaryKeyValue === undefined) {
-                var possibleObj = this.findByExample(cls, obj);
-                if (possibleObj.length === 0)
-                    throw _em.exception(methodId, "Can not find an object that matches the given obj. Try using findByExample yourself before calling isDirty.");
-                else if (possibleObj.length > 1)
-                    throw _em.exception(methodId, "Object is ambiguous, found " + possibleObj.length + " matches. Try using findByExample yourself before calling isDirty.");
-                else {
-                    primaryKeyValue = _em.dm.getPrimaryKeyValueFromObject(this, cls, possibleObj[0]);
-                    if (primaryKeyValue === "" || primaryKeyValue === undefined)
-                        return true;
-                }
-            }
+            var possibleObj = this.findByExample(cls, obj);
+            if (possibleObj.length === 0)
+                throw _em.exception(methodId, "Can not find an object that matches the given obj. Try using findByExample yourself before calling isDirty.");
+            else if (possibleObj.length > 1)
+                throw _em.exception(methodId, "Object is ambiguous, found " + possibleObj.length + " matches. Try using findByExample yourself before calling isDirty.");
+
             if (arguments.length === 3) {
                 if (typeof val !== "boolean")
                     throw _em.exception(methodId, "Object value must be of type boolean but is " + typeof val + ".");
-                _em.dm.setFlags(this, cls, primaryKeyValue, { isDirty : val });
+                possibleObj[0]._isDirty = val;
             }
-            var flags = this.flags[cls].idx[primaryKeyValue];
-            if (flags === undefined)
-                return false;
-            else
-                return flags.isDirty;
+            return possibleObj[0]._isDirty
         },
 
         /*  check (or set) whether entity object is deleted  */
@@ -730,30 +685,18 @@
             var methodId = "dm:isDeleted";
             _em.dm.sanityCheckArgumentsLength(methodId, 2, 3, arguments);
             _em.dm.sanityCheckClassArgument(methodId, this, cls, false);
-            var primaryKeyValue = _em.dm.getPrimaryKeyValueFromObject(this, cls, obj);
-            if (primaryKeyValue === "" || primaryKeyValue === undefined) {
-                var possibleObj = this.findByExample(cls, obj);
-                if (possibleObj.length === 0)
-                    throw _em.exception(methodId, "Can not find an object that matches the given obj. Try using findByExample yourself before calling isDeleted.");
-                else if (possibleObj.length > 1)
-                    throw _em.exception(methodId, "Object is ambiguous, found " + possibleObj.length + " matches. Try using findByExample yourself before calling isDeleted.");
-                else {
-                    primaryKeyValue = _em.dm.getPrimaryKeyValueFromObject(this, cls, possibleObj[0]);
-                    if (primaryKeyValue === "" || primaryKeyValue === undefined)
-                        return true;
-                }
-            }
+            var possibleObj = this.findByExample(cls, obj);
+            if (possibleObj.length === 0)
+                throw _em.exception(methodId, "Can not find an object that matches the given obj. Try using findByExample yourself before calling isDeleted.");
+            else if (possibleObj.length > 1)
+                throw _em.exception(methodId, "Object is ambiguous, found " + possibleObj.length + " matches. Try using findByExample yourself before calling isDeleted.");
+
             if (arguments.length === 3) {
                 if (typeof val !== "boolean")
                     throw _em.exception(methodId, "Object value must be of type boolean but is " + typeof val + ".");
-                _em.dm.setFlags(this, cls, primaryKeyValue, { isDeleted : val });
+                possibleObj[0]._isDeleted = val;
             }
-            var flags = this.flags[cls].idx[primaryKeyValue];
-            if (flags === undefined)
-                return false;
-            else
-                return flags.isDeleted;
-
+            return possibleObj[0]._isDeleted;
         },
 
         /*  check (or set) whether entity object is a stub object  */
@@ -761,29 +704,19 @@
             var methodId = "dm:isStub";
             _em.dm.sanityCheckArgumentsLength(methodId, 2, 3, arguments);
             _em.dm.sanityCheckClassArgument(methodId, this, cls, false);
-            var primaryKeyValue = _em.dm.getPrimaryKeyValueFromObject(this, cls, obj);
-            if (primaryKeyValue === "" || primaryKeyValue === undefined) {
-                var possibleObj = this.findByExample(cls, obj);
-                if (possibleObj.length === 0)
-                    throw _em.exception(methodId, "Can not find an object that matches the given obj. Try using findByExample yourself before calling isStub.");
-                else if (possibleObj.length > 1)
-                    throw _em.exception(methodId, "Object is ambiguous, found " + possibleObj.length + " matches. Try using findByExample yourself before calling isStub.");
-                else {
-                    primaryKeyValue = _em.dm.getPrimaryKeyValueFromObject(this, cls, possibleObj[0]);
-                    if (primaryKeyValue === "" || primaryKeyValue === undefined)
-                        return true;
-                }
-            }
+            var possibleObj = this.findByExample(cls, obj);
+            if (possibleObj.length === 0)
+                throw _em.exception(methodId, "Can not find an object that matches the given obj. Try using findByExample yourself before calling isStub.");
+            else if (possibleObj.length > 1)
+                throw _em.exception(methodId, "Object is ambiguous, found " + possibleObj.length + " matches. Try using findByExample yourself before calling isStub.");
+
             if (arguments.length === 3) {
                 if (typeof val !== "boolean")
                     throw _em.exception(methodId, "Object value must be of type boolean but is " + typeof val + ".");
-                _em.dm.setFlags(this, cls, primaryKeyValue, { isStub : val });
+                possibleObj[0]._isStub = val;
             }
-            var flags = this.flags[cls].idx[primaryKeyValue];
-            if (flags === undefined)
-                return false;
-            else
-                return flags.isStub;
+
+            return possibleObj[0]._isStub;
         },
 
         /*  import example object into an entity object  */
@@ -797,7 +730,7 @@
             var possibleObj = this.findById(cls, objPrimaryKeyValue);
             if (possibleObj === undefined)
                 throw _em.exception(methodId, "Can not find an object that matches the given obj. Try using findByExample yourself before calling import.");
-            if (this.isStub(cls, possibleObj))
+            if (possibleObj._isStub)
                 throw _em.exception(methodId, "Given obj is a stub object. Try creating the obj first before you import value in it.");
             var examplePrimaryKeyValue = _em.dm.getPrimaryKeyValueFromObject(this, cls, example);
             var primaryKeyField = _em.dm.getPrimaryKeyNameForClass(this, cls);
@@ -836,6 +769,7 @@
                                 case "string":
                                 case "number":
                                 case "boolean":
+                                case "object":
                                     _em.dm.sanityCheckFieldType(methodId, cls, field, specField.type, singleValue);
                                     resolvedPayloadValue.push(singleValue);
                                     break;
@@ -865,6 +799,7 @@
                             case "string":
                             case "number":
                             case "boolean":
+                            case "object":
                                 _em.dm.sanityCheckFieldType(methodId, cls, field, specField.type, payloadValue);
                                 possibleObj[field] = payloadValue;
                                 break;
@@ -876,10 +811,13 @@
                                 } else {
                                     relPrimaryKeyValue = payloadValue;
                                 }
-                                relObj = this.findById(specField.type, relPrimaryKeyValue);
-                                if (relObj === undefined)
-                                    relObj = _em.dm.createStubObject(this, specField.type, relPrimaryKeyValue);
-
+                                if (relPrimaryKeyValue !== undefined && relPrimaryKeyValue !== null) {
+                                    relObj = this.findById(specField.type, relPrimaryKeyValue);
+                                    if (relObj === undefined)
+                                        relObj = _em.dm.createStubObject(this, specField.type, relPrimaryKeyValue);
+                                } else {
+                                    relObj = undefined
+                                }
                                 possibleObj[field] = relObj;
                                 break;
                         }
@@ -897,12 +835,9 @@
             console.log(this.entities);
             console.log("================\nDefined objects:\n================");
             console.log(this.entityObjs);
-            console.log("=============\nObject flags:\n=============");
-            console.log(this.flags);
         }
     };
 
     /*  export external API  */
     return em;
 }));
-

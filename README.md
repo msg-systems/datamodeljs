@@ -17,14 +17,22 @@ In order to be able to handle complex business objects *datamodeljs* implements 
 
 # Entity object states
 
-Entities created with *datamodeljs* can track four different states:
+Entities created with *datamodeljs* know their entity class name:
 
-1. __dirty__ -   has the entity changed on client side since it load time
-2. __deleted__ - is the entity marked for deletion on client side 
-3. __transient__ - was the entity created newly on client side
-4. __stub__ - is the entity referenced by another entities relationship, but the entity itself was not loaded by now	  
+1. ___className__ - the string representation of the entities class name (as declared with the `define` function)
+
+Entities created with *datamodeljs* also can track four different states:
+
+1. ___isDirty__ -   has the entity changed on client side since it load time
+2. ___isDeleted__ - is the entity marked for deletion on client side 
+3. ___isTransient__ - was the entity created newly on client side
+4. ___isStub__ - is the entity referenced by another entities relationship, but the entity itself was not loaded by now	  
 
 In most cases a dirty entity leads to an PUT call in the backend. A deleted entity leads a DELETE call. A transient entity results in a POST call and a stub entity should be loaded using a GET call. Mapping this is not part of *datamodeljs* since it has not the goal to cover the AJAX requests. Mapping the entity states to proper AJAX requests is the applications task.
+
+# Entity serialisation and cloning
+
+When serialising or cloning entity objects their internal object properties `_className`, `_isDirty`, `_isDeleted`, `_isTransient` and `_isStub` are not exposed. So using JSON.stringify before sending entites to a service ensures that no internal property is send to the service. Also cloning entity objects simply creates a new JavaScript object that has the entites properties and values set - but it is not considered an entity object anymore since the internal object properties are not cloned.
 
 # Initialization
 
@@ -70,6 +78,7 @@ The class specification is a list of attributes following this syntax:
     
 
 1. The attribute's name is set by the `attribute` tag. 
+The internal properties  `_className`, `_isDirty`, `_isDeleted`, `_isTransient` and `_isStub` are reserved and can not be used as an class attribute. 
 2. One attribute can be defined as `primary` field with the prefix `@`. 
 3. The attribute's `type` can be either `number`, `boolean`, `string`, `object` or any other class name 
 4. The `arity` defines this attributes relation as an arrayed relation and it can have different options
@@ -160,14 +169,16 @@ Example:
 
 ## Tracking and changing entity object states
 
-Changing the states of an entity is the JavaScript application's task. Entity attributes can be altered as usual in JavaScript applications. The specific entity states `dirty`, `deleted`, `transient` and `stub` can only be altered by using the proper `dataManager` functions `isDirty`, `isDeleted`, `isTransient`, `isStub`. These functions work as implicit getter/setter - meaning if no new value (`val`) is provided the current value of the state is return otherwise the current state will be changed and the new value will be return.
+Changing the states of an entity is the JavaScript application's task. Entity attributes can be altered as usual in JavaScript applications. The entity class name `_className` can not be changed or deleted from the entity object. The specific entity states `_isDirty`, `_isDeleted`, `_isTransient` and `_isStub` can only be altered to a new legal boolean value. 
 
-        dataManager.isDirty(String cls, Object obj, [Boolean val]) : boolean
-	    dataManager.isDeleted(String cls, Object obj, [Boolean val]) : boolean
-	    dataManager.isTransient(String cls, Object obj, [Boolean val]) : boolean
-	    dataManager.isStub(String cls, Object obj, [Boolean val]) : boolean
+		// entity object properties
+		entityObj._className : String
+		entityObj._isDirty : Boolean
+		entityObj._isDeleted : Boolean
+		entityObj._isTransient : Boolean
+		entityObj._isStub : Boolean
 
-The signature of all state tracking functions is identical. Provide the proper class name (`cls`) of the given entity (`obj`) and optionally a new value (`val`) if it should be set. 
+For backward compatibility the `dataManager` functions `isDirty`, `isDeleted`, `isTransient` and `isStub` still remain as decprecated functions (see documentation in [release v1.1.0](https://github.com/msg-systems/datamodeljs/tree/v1.1.0)). 
 
 ## Finding entity objects
 
@@ -234,13 +245,16 @@ This is often needed, if a JavaScript application edits entities then stores cha
 
 ## Debugging entity class and objects
 
-Since the `dataManager` does quite some jobs for us and a data model might be slightly huge and complex *datamodeljs* enables a little debugging help for developers. Using the `dump` function on the `dataManager` shows you three lists of information:
+Since the `dataManager` does quite some jobs for us and a data model might be slightly huge and complex *datamodeljs* enables a little debugging help for developers. 
+
+		dataManager.dump() : void
+
+Using the `dump` function on the `dataManager` shows you two lists with information:
 
 1. a full list of all defined classes and their specification
 2. a full list of all defined entity objects ordered by class
 	- once as an arrayed list
 	- and once as an object map allowing access by primary key
-3. a list of all entity states ordered by class
-	- accessing the flags `dirty`, `deleted`, `transient` and `stub`
+
  
 So at any time during development, application test and application runtime it should be possible to get an insight to what the `dataManager` handles. 

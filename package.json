@@ -24,7 +24,7 @@
     "bugs": {
         "url":  "https://github.com/msg-systems/datamodeljs/issues"
     },
-    "main": "Gruntfile.js",
+    "main": "./datamodeljs/datamodel.js",
     "devDependencies": {
         "grunt":                "~0.4.5",
         "grunt-cli":            "~0.1.13",

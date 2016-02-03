@@ -39,7 +39,7 @@ When serialising or cloning entity objects their internal object properties `_cl
 *datamodeljs* exposes itself to the global variable '`datamodeljs`'. In case that a different symbol for datamodeljs is needed use the `symbol` function. This function allows you to occupy a different global name by giving a new name or releasing the last name by providing no name or an empty name.
 
 
-        datamodeljs.symbol([String symbol]) : datamodeljs
+        datamodeljs.symbol([symbol:String]) : datamodeljs
          
 Example:
 
@@ -52,7 +52,7 @@ Example:
 
 *datamodeljs* allows the definition of different dataManager storages by using the `dm` function:
 
-        datamodeljs.dm(String name) : dataManager
+        datamodeljs.dm(name:String) : dataManager
 
 Example:
 
@@ -68,7 +68,7 @@ The `dataManager` created by *datamodeljs* enables the entity class definition a
 
 Defining an entity class is the basic for working with entities. Entities are defined with the `define` function. A class definition needs at least an unique class name (`cls`) and its specification (`spec`). A parent class name is optional. If a parent class name is given, all attributes of that class will be copied into the new class name. Please be aware that this is no real extends mechanism of those classes. 
 
-        dataManager.define(String cls, [String parentCls], Object spec) : void
+        dataManager.define(cls:String, [parentCls:String], spec:Object) : void
 
 The class specification is a list of attributes following this syntax:
 
@@ -109,7 +109,7 @@ Examples:
 
 Removing a class definition from the `dataManager` is possible with the `undefine` function:
 
-        dataManager.undefine(String cls) : void
+        dataManager.undefine(cls:String) : void
 
 Using this function is removing the class, its specification and all entity objects from the `dataManager`. It is most useful when data models are loaded dynamically. 
     
@@ -117,7 +117,7 @@ Using this function is removing the class, its specification and all entity obje
 
 Creating objects of entities is available with the `create` function.
 
-        dataManager.create(String cls, Object payload) : entity
+        dataManager.create(cls:String, payload:Object) : entity
 
 1. The `cls` must be one of the defined class names within the `dataManager` 
 2. The `payload` is the JSON object that should be converted into an entity. The given payload is hereby validated against the entity class specification
@@ -149,7 +149,7 @@ Example:
 
 Deleting a single entity object is possible using the `destroy` function.
 
-        dataManager.destroy(String cls, Object obj, [Boolean force]) : void
+        dataManager.destroy(cls:String, obj:Object, [force:Boolean]) : void
 
 The object will be immediatly removed from the `dataManager` if it was marked as `transient` entity or if `force` is set to `true`. Otherwise it will be marked as `deleted`. This way the JavaScript application can still handle the deletion with a proper AJAX call.
 
@@ -161,7 +161,7 @@ Example:
 
 The deletion of all objects of a given entity class(`cls`) is possible using the `destroyAll` function.
  
-        dataManager.destroyAll(String cls) : void
+        dataManager.destroyAll(cls:String) : void
 
 Example: 
 
@@ -194,11 +194,11 @@ Finding entities can be reached over several ways
 
 The following finder functions only need the class name (`cls`) and will return an array of entity objects that match the finder.
 
-    	dataManager.findAll(String cls) : Array(entity)
-    	dataManager.findAllDirty(String cls) : Array(entity)
-    	dataManager.findAllDeleted(String cls) : Array(entity)
-    	dataManager.findAllTransient(String cls) : Array(entity) 
-    	dataManager.findAllStub(String cls) : Array(entity)
+    	dataManager.findAll(cls:String) : Array(entity)
+    	dataManager.findAllDirty(cls:String) : Array(entity)
+    	dataManager.findAllDeleted(cls:String) : Array(entity)
+    	dataManager.findAllTransient(cls:String) : Array(entity) 
+    	dataManager.findAllStub(cls:String) : Array(entity)
 
 Example:
 
@@ -212,7 +212,7 @@ Example:
 
 Finding entities by primary key is quite easy by providing the desired primary as additional parameter (`id`). The `id` is defined as `Any` since it depends on the class specification. Basically it is either a `string` or a `number`.
 
-    	dataManager.findById(String cls, Any id) : entity
+    	dataManager.findById(cls:String, id:Any) : entity
 
 Example:
 
@@ -222,7 +222,7 @@ Example:
 
 Finding entities by a given `example` object is available via the `findByExample` function. 
 
-    	dataManager.findByExample(String cls, Object example) : Array(entity)
+    	dataManager.findByExample(cls:String, example:Object) : Array(entity)
 
 Example:
 
@@ -235,7 +235,7 @@ Example:
 
 Sometimes it is useful or necessary to import data into existing entity objects. The problem with this is that any existing relationship with other others or from other objects should not be influenced. Importing data fields into an existing entity is possible with the `import` function. A given example object (`example`) will hereby be merged into an existing entity object (`obj`). 
 
-    	dataManager.import(String cls, Object obj, Object example) : entity
+    	dataManager.import(cls:String, obj:Object, example:Object) : entity
 
 Example:
 

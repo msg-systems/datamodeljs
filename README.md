@@ -178,7 +178,7 @@ Changing the states of an entity is the JavaScript application's task. Entity at
 		entityObj._isTransient : Boolean
 		entityObj._isStub : Boolean
 
-For backward compatibility the `dataManager` functions `isDirty`, `isDeleted`, `isTransient` and `isStub` still remain as decprecated functions (see documentation in [release v1.1.0](https://github.com/msg-systems/datamodeljs/tree/v1.1.0)). 
+For backward compatibility the `dataManager` functions `isDirty`, `isDeleted`, `isTransient` and `isStub` still remain as decprecated functions (see documentation in [release 1.1.0#tracking-and-changing-entity-object-states](https://github.com/msg-systems/datamodeljs/tree/1.1.0#tracking-and-changing-entity-object-states)). 
 
 ## Finding entity objects
 

@@ -42,23 +42,24 @@ When serialising or cloning entity objects their internal object properties `_cl
         datamodeljs.symbol([symbol:String]) : datamodeljs
          
 Example:
-
+```js
     // define an alternate global exposure 
     datamodeljs.symbol("dmjs")
     // delete the former alternate global exposure and restore the old value of 'dmjs'
     datamodeljs.symbol("")
     datamodeljs.symbol()
-        
+```
 
 *datamodeljs* allows the definition of different dataManager storages by using the `dm` function:
 
         datamodeljs.dm(name:String) : dataManager
 
 Example:
-
+```js
     var myDataManager = datamodeljs.dm("mine");
     // all further examples are working with this dataManager
     var dm = datamodeljs.dm("default")
+```
 
 # Data management
 
@@ -87,7 +88,7 @@ The internal properties  `_className`, `_isDirty`, `_isDeleted`, `_isTransient` 
 	3. `*` - stands for zero or more(0..n) elements of the given `type`
 
 Examples:
-
+```js
     dm.define("AbstractData", {
         id: '@number',                          // this is the primary field
         version: 'number'
@@ -104,7 +105,8 @@ Examples:
         kindKnoten: 'Knoten*',                  // Knoten can have n childs being Knoten as well
         pfad: 'string'
     });
-    
+```
+
 ## Undefining entity classes
 
 Removing a class definition from the `dataManager` is possible with the `undefine` function:
@@ -123,7 +125,7 @@ Creating objects of entities is available with the `create` function.
 2. The `payload` is the JSON object that should be converted into an entity. The given payload is hereby validated against the entity class specification
 
 Example:
- 
+```js 
     dm.create("Verweis", {
 	    id: 1,
 		version: 1,
@@ -132,11 +134,12 @@ Example:
 		knoten: 1						// it is sufficient to only provide the id of the related object
  										// the dataManager resolves the relation using the given unique id
     })
+```
 
 The given example creates two entity objects. The first is the desired `Verweis`. The second object is a `Knoten` with `id` set to  but the flag __stub__ set to `true`. Meaning that this object is referenced somewhere but it was not yet loaded. If this objects get loaded and created later on, then the reference to this `Knoten` wont change, only its content will be updated and its __stub__ flag will be set to `false`.
 
 Example:
-
+```js
     dm.create("Knoten", {
 	    id: 1,
 		version: 1,
@@ -144,6 +147,7 @@ Example:
 		kindKnoten: [],					// it is ok if this array is empty since the arity is *
 		pfad: "/" 
     })
+```
 
 ## Deleting entity objects
 
@@ -154,9 +158,9 @@ Deleting a single entity object is possible using the `destroy` function.
 The object will be immediatly removed from the `dataManager` if it was marked as `transient` entity or if `force` is set to `true`. Otherwise it will be marked as `deleted`. This way the JavaScript application can still handle the deletion with a proper AJAX call.
 
 Example: 
-
-	dm.destroy("Verweis", dm.findById("Verweis", 1))
-
+```js
+    dm.destroy("Verweis", dm.findById("Verweis", 1))
+```
 ----------
 
 The deletion of all objects of a given entity class(`cls`) is possible using the `destroyAll` function.
@@ -164,8 +168,9 @@ The deletion of all objects of a given entity class(`cls`) is possible using the
         dataManager.destroyAll(cls:String) : void
 
 Example: 
-
-	dm.destroyAll("Knoten")
+```js
+    dm.destroyAll("Knoten")
+```
 
 ## Tracking and changing entity object states
 
@@ -201,12 +206,13 @@ The following finder functions only need the class name (`cls`) and will return 
     	dataManager.findAllStub(cls:String) : Array(entity)
 
 Example:
-
+```js
     dm.findAll("Verweis")
     dm.findAllDirty("Knoten")  
     dm.findAllDeleted("Knoten")
     dm.findAllTransient("Knoten") 
     dm.findAllStub("Knoten")
+```
 
 ----------
 
@@ -215,8 +221,9 @@ Finding entities by primary key is quite easy by providing the desired primary a
     	dataManager.findById(cls:String, id:Any) : entity
 
 Example:
-
+```js
     dm.findById("Verweis", 1)
+```
 
 ----------
 
@@ -238,9 +245,10 @@ Sometimes it is useful or necessary to import data into existing entity objects.
     	dataManager.import(cls:String, obj:Object, example:Object) : entity
 
 Example:
-
+```js
     dm.import("Verweis", dm.findById("Verweis", 1), { verweisTyp: "Copy", anzeigename: "Partial change" })
- 
+```
+
 This is often needed, if a JavaScript application edits entities then stores changes to any other system and gets a newly changed object as result back. In this case the old 'saved' object still exists in the `dataManager` and it must be updated with the new result of the service. 
 
 ## Debugging entity class and objects

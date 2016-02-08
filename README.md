@@ -232,11 +232,12 @@ Finding entities by a given `example` object is available via the `findByExample
     	dataManager.findByExample(cls:String, example:Object) : Array(entity)
 
 Example:
-
+```js
     // find all Verweis entities where verweisTyp is equal to "Symbol"
 	dm.findByExample("Verweis", { verweisTyp: "Symbol" })
     // find all Verweis entities where verweisTyp is equal to "Symbol" and knoten is equal to Knoten with id 1
 	dm.findByExample("Verweis", { verweisTyp: "Symbol", knoten: 1 })
+```
 
 ## Partial entity import
 

@@ -6,7 +6,7 @@
 
 /* global require: false */
 var should = require('should');
-var datamodeljs = require("../datamodeljs/datamodel.js");
+var datamodeljs = require("../lib/datamodel.js");
 // Unit Tests
 /* jshint immed: false*/
 

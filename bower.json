@@ -1,8 +1,8 @@
 {
     "name":        "datamodeljs",
-    "version":     "1.2.0",
+    "version":     "1.2.1",
     "description": "This library handles entity like javascript objects. Allowing relationships between those objects. Also allowing bi-directional relationships. Tracking states (changed, new, deleted) of those objects.",
-    "main":        "./datamodeljs/datamodel.js",
+    "main":        "./lib/datamodel.js",
     "homepage":    "https://github.com/msg-systems/datamodeljs",
     "license":     "MIT",
     "authors": [

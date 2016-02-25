@@ -6,4 +6,4 @@
 register:
   datamodeljs:
     JS:
-    - ../lib/datamodel.js
+    - ./lib/datamodel.js

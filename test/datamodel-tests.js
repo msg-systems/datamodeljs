@@ -155,9 +155,53 @@ should.exist(dm);
 (function () {dm.create("Country", {constructor : function () {}}) }).should.throw(/^.*?has no fields. Object creation failed..*?$/);
 //              Double Definition - ID already defined
 (function () {
-    dm.create("Country", { id : "Dummy", name : "Nowhere" })
-    dm.create("Country", { id : "Dummy", name : "Else but Here" })
+    dm.create("Country", { id : "Dummy", name : "Nowhere" });
+    dm.create("Country", { id : "Dummy", name : "Else but Here" });
 }).should.throw(/^.*?already exists.*?$/);
+(function () {
+    dm.create("Person", { id: "HWA", firstName: "Hans", lastName: "Wagner", organizations: [{}]});
+}).should.throw(/^.*?Parameter payload for object creation of class\(OrgUnit\).*?$/);
+(function() {
+    dm.create("OrgUnit", {
+        id: "XIS",
+        country: {}
+    });
+}).should.throw(/^.*?Parameter payload for object creation of class\(Country\).*?$/);
+should.not.exist(dm.findById("OrgUnit", "XIS"));
+(function() {
+    dm.create("Person", {
+        id: "AFL",
+        organizations: {
+            id: "XIS",
+            country: {}
+        }
+    });
+}).should.throw(/^.*?Parameter payload for object creation of class\(Country\).*?$/);
+should.not.exist(dm.findById("OrgUnit", "XIS"));
+should.not.exist(dm.findById("Person", "AFL"));
+// Test for failed creation within recursion - no obj should be created then
+(function() {
+    dm.create("Person", {
+        id: "AFL", // AFL is new
+        supervisor: {
+            id: "SAFL", // SAFL is new
+            supervisor: {
+                id: "SSAFL", // SSAFL is new
+                organizations: "SXIS" // SXIS is new
+            },
+            organizations: "XIS"
+        },
+        organizations: {
+            id: "XIS",  // XIS is new
+            country: {} // illegal country
+        }
+    });
+}).should.throw(/^.*?Parameter payload for object creation of class\(Country\).*?$/);
+should.not.exist(dm.findById("OrgUnit", "XIS"));
+should.not.exist(dm.findById("OrgUnit", "SXIS"));
+should.not.exist(dm.findById("Person", "AFL"));
+should.not.exist(dm.findById("Person", "SAFL"));
+should.not.exist(dm.findById("Person", "SSAFL"));
 //                      _                                       _
 //   ___ _ __ ___  __ _| |_ ___            __ _  ___   ___   __| |
 //  / __| '__/ _ \/ _` | __/ _ \  _____   / _` |/ _ \ / _ \ / _` |
@@ -200,7 +244,7 @@ var mws = dm.create("Person", {
     hobbies: ["motorbike ride"]
 });
 
-var rse = dm.create("Hacker", {
+var rse = dm.create("Person", {
     id: "RSE",
     firstName: "Ralf",
     middleInitial: "S",
@@ -209,9 +253,70 @@ var rse = dm.create("Hacker", {
     hobbies: ["Foo", "Bar"],
     supervisor: "MWS",
     proxies: [mws, "JHO"],
-    organizations: ["XT"],
-    hackerCode: "what?"
+    organizations: ["XT"]
 });
+
+var hacker = dm.create("Hacker", {
+    id: "HCK",
+    firstName: "Fuh",
+    lastName: "Manschu",
+    born: 1878,
+    hobbies: ["Foo", "Bar"],
+    supervisor: "RSE",
+    hackerCode: "Buboh",
+    organizations: ["XT"]
+});
+
+var mmu = dm.create("Person", {
+    id: "MMU",
+    firstName: "Max",
+    middleInitial: "M",
+    lastName: "Mustermann",
+    born: 1956,
+    supervisor: {
+        id: "ARI",
+        firstName: "Adam",
+        lastName: "Riese",
+        organizations: ["XT"]
+    },
+    proxies: [{
+        id: "RRU",
+        firstName: "Rainer",
+        lastName: "Rübezahl",
+        organizations: ["XT"]
+    }, {
+        id: "RSE", // beware RSE already exists - all attributes are ignored and the existing RSE is taken
+        firstName: "nicht Ralf",
+        lastName: "nicht Engelschall"
+    }, "MWS"],
+    organizations: [{
+        id: "Musterliga",
+        name: "Musterliga",
+        owner: "MMU",
+        country: "FR"
+    }]
+});
+var ari = dm.findById("Person", "ARI");
+var rru = dm.findById("Person", "RRU");
+var musterliga = dm.findById("OrgUnit", "Musterliga");
+var fr = dm.findById("Country", "FR");
+var rse2 = dm.findById("Person", "RSE");
+should.exist(mmu);
+should.exist(ari);
+should.exist(rru);
+should.exist(musterliga);
+should.exist(fr);
+should.exist(rse2);
+mmu.should.have.property("_isStub", false);
+ari.should.have.property("_isStub", false);
+rru.should.have.property("_isStub", false);
+musterliga.should.have.property("_isStub", false);
+fr.should.have.property("_isStub", true);
+rse2.should.have.property("lastName", "Engelschall");
+musterliga.should.have.property("owner", [mmu]);
+mmu.proxies.should.containEql(mws);
+mmu.proxies.should.containEql(rse2);
+mmu.proxies.should.containEql(rru);
 
 dm.create("Person", {
     id: "JHO",
@@ -222,7 +327,7 @@ dm.create("Person", {
     hobbies: [""]
 });
 
-var biebl = dm.create("Person", {firstName: "Biebl"});
+var biebl = dm.create("Person", {firstName: "Biebl", organizations: ["XT"]});
 var agile = dm.create("OrgUnit", {
     id: "CoC Agile",
     owner: [biebl]
@@ -243,7 +348,8 @@ dm.findById("Person", "LTU")._className.should.be.equal("Person");
 JSON.stringify(dm.create("Person", {
     id: "LDA",
     firstName: "Lisa",
-    lastName: "Daske"
+    lastName: "Daske",
+    organizations: ["msgCH"]
 })).should.match(/^((?!_className).)*$/);
 
 //      _           _                             _               _
@@ -409,7 +515,7 @@ for (var idx in allOrgUnits) {
     should.exist(dm.findById("Person", "JHO"));
     should.exist(dm.findById("Person", "MWS"));
     should.exist(dm.findById("Person", "RSE"));
-    should.exist(dm.findById("Hacker", "RSE"));
+    should.exist(dm.findById("Hacker", "HCK"));
     should.exist(dm.findById("OrgUnit", "msg"));
     should.exist(dm.findById("OrgUnit", "msgCH"));
     should.exist(dm.findById("OrgUnit", "XT"));
@@ -501,7 +607,7 @@ dm.findByExample("Country", {id: ""}).should.have.length(0);
 // |_|___/\/   |_|  \__,_|_| |_|___/_|\___|_| |_|\__|          \__, |\___/ \___/ \__,_|
 //                                                             |___/
 (function () {
-    var misterX = dm.create("Person", {firstName : "Mister X"});
+    var misterX = dm.create("Person", {firstName : "Mister X", organizations: "XT"});
     dm.isTransient("Person", misterX).should.be.true();
     misterX._isTransient.should.be.true();
     dm.isTransient("Person", {firstName : "Mister X"}).should.be.true();
@@ -558,7 +664,8 @@ dm.findByExample("Country", {id: ""}).should.have.length(0);
     var dirtyObj = dm.create("Person", {
         id : "Dirt",
         firstName : "Kevin",
-        born : 1981
+        born : 1981,
+        organizations: "XT"
     });
     dm.isDirty("Person", dirtyObj).should.be.false();
     dirtyObj._isDirty.should.be.false();
@@ -624,7 +731,8 @@ dm.findByExample("Country", {id: ""}).should.have.length(0);
     dm.isStub("Person", {id : "HansDampf"}).should.be.true();
     var stubTest1 = dm.create("Person", {
         id : "HansDampf",
-        firstName : "Hans Richard"
+        firstName : "Hans Richard",
+        organizations: "XT"
     });
     stubTest._isStub.should.be.false();
     stubTest.should.be.equal(stubTest1);

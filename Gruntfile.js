@@ -26,7 +26,6 @@
 **  SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-/* global module: true */
 module.exports = function (grunt) {
     grunt.initConfig({
         pkg: grunt.file.readJSON("package.json"),
@@ -35,11 +34,15 @@ module.exports = function (grunt) {
                 jshintrc: "jshint.json"
             },
             gruntfile:   [ "Gruntfile.js" ],
-            sourcefiles: [ "datamodeljs/datamodel.js" ]
+            sourcefiles: [ "lib/datamodel.js" ],
+            testfiles: [ "test/**/*.js" ]
         },
-        execute: {
+        mochaTest: {
             test: {
-                src: ["test/datamodel-tests.js"]
+                src: [ "test/mocha/**/*.js" ]
+            },
+            options: {
+                require: "test/common.js"
             }
         },
         clean: {
@@ -48,9 +51,7 @@ module.exports = function (grunt) {
         }
     });
 
-    grunt.loadNpmTasks("grunt-contrib-jshint");
-    grunt.loadNpmTasks("grunt-contrib-clean");
-    grunt.loadNpmTasks("grunt-execute");
+    require("load-grunt-tasks")(grunt, { pattern: "grunt-*" });
 
-    grunt.registerTask("default", [ "jshint", "execute:test" ]);
+    grunt.registerTask("default", [ "jshint", "mochaTest" ]);
 };

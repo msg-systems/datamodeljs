@@ -24,7 +24,14 @@
     "maxlen":        200,
     "loopfunc":      true,
     "globals": {
-        "console":   false,
-        "module":    false
+        "console":     false,
+        "module":      false,
+        "global":      false,
+        "chai":        false,
+        "require":     false,
+        "describe":    false,
+        "it":          false,
+        "expect":      false,
+        "datamodeljs": false
     }
 }

@@ -51,8 +51,24 @@ describe('DatamodelJS Datamanger API - import()', function () {
         expect(function () {dm.import('Person', {id: 'HZ'}, {}); }).to.throw(/^.*?Given obj is a stub object.*?$/)
     })
 
+    it('should not import into deleted object ("forced" destroy)', function () {
+        var ihme = dm.create('Person', {id: 'AIH', lastName: 'Ihme', organizations: ['ABC']})
+        expect(ihme).to.be.an('object')
+        dm.destroy('Person', ihme, true)
+        expect(function () {dm.import('Person', ihme, {id: 'AIH', firstName : 'Andre'}) }).to.throw(/^.*?Can not find an object that matches the given obj.*?$/)
+    })
+
     it('should validate import structure', function () {
         expect(function () {dm.import('Person', {id: 'JHO'}, {husten: true}); }).to.throw(/^.*?has no field.*?$/);
+    })
+
+    it('should not import a object with a primary key into object with valid primary key', function () {
+        var ihme = dm.create('Person', {id: 'AIH', lastName: 'Ihme', organizations: ['ABC']})
+        expect(ihme).to.be.an('object')
+        expect(ihme.id).to.be.equal('AIH')
+        expect(function () {dm.import('Person', ihme, {id: "XXX"})}).to.throw(/^.*?object with primaryKeyValue.*?into object with primaryKeyValue.*?$/)
+
+        dm.destroy('Person', ihme, true)
     })
 
     //  _                            _                                   _
@@ -70,6 +86,49 @@ describe('DatamodelJS Datamanger API - import()', function () {
         expect(jho.firstName).to.be.equal('Jochen')
         expect(jho.lastName).to.be.equal('Hörtreiter')
         expect(jho.supervisor).to.be.eql([jho])
+    })
+
+    it('should be the same object after importing', function () {
+        var ihme = dm.create('Person', {id: 'AIH', lastName: 'Ihme', organizations: ['ABC']})
+        var ihme2 = dm.import('Person', ihme, {id: 'AIH', firstName : 'Andre'})
+        expect(ihme).to.be.equal(ihme2)
+
+        dm.destroy('Person', ihme, true)
+    })
+
+    it('should import into deleted object (was destroyed "soft")', function () {
+        var ihme = dm.create('Person', {id: 'AIH', lastName: 'Ihme', organizations: ['ABC']})
+        expect(ihme).to.be.an('object')
+        dm.destroy('Person', ihme)
+        expect(ihme._isDeleted).to.be.true
+        dm.import('Person', ihme, {id: 'AIH', firstName : 'Andre'})
+        expect(ihme._isDeleted).to.be.true
+
+        dm.destroy('Person', ihme, true)
+    })
+
+    it('should import into dirty object', function () {
+        var ihme = dm.create('Person', {id: 'AIH', lastName: 'Ihme', organizations: ['ABC']})
+        expect(ihme._isDirty).to.be.false
+        dm.isDirty('Person', ihme, true)
+        expect(ihme._isDirty).to.be.true
+        dm.import('Person', ihme, {id: 'AIH', firstName : 'Andre'})
+        expect(ihme._isDirty).to.be.true
+        expect(ihme.firstName).to.be.equal('Andre')
+
+        dm.destroy('Person', ihme, true)
+    })
+
+    it('should import into transient object', function () {
+        var ihme = dm.create('Person', {id: 'AIH', lastName: 'Ihme', organizations: ['ABC']})
+        expect(ihme._isTransient).to.be.false
+        dm.isTransient('Person', ihme, true)
+        expect(ihme._isTransient).to.be.true
+        dm.import('Person', ihme, {id: 'AIH', firstName : 'Andre'})
+        expect(ihme._isTransient).to.be.true
+        expect(ihme.firstName).to.be.equal('Andre')
+
+        dm.destroy('Person', ihme, true)
     })
 
     // TODO - more tests for import

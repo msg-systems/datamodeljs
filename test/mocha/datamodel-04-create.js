@@ -337,4 +337,17 @@ describe('DatamodelJS Datamanger API - create()', function () {
         }))
         expect(lda).to.match(/^((?!(_className|_isStub|_isDirty|_isTransient|_isDeleted)).)*$/)
     })
+
+    it('should make a Object, that is stub, non stub after it was created', function () {
+        var ihme = dm.create('Person', {id: 'AIH', lastName: 'Ihme', organizations: ['ABC']})
+        expect(ihme).to.be.an('object')
+        var abc_stub = ihme.organizations[0]
+        expect(abc_stub._isStub).to.be.true
+        expect(abc_stub.name).to.be.equal('')
+        dm.create('OrgUnit', {id: 'ABC', name : 'ABC OrgUnit'})
+        expect(abc_stub._isStub).to.be.false
+        expect(abc_stub.name).to.be.equal('ABC OrgUnit')
+
+        dm.destroy('Person', ihme, true)
+    })
 })

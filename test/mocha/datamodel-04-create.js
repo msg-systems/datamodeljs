@@ -45,6 +45,7 @@ describe('DatamodelJS Datamanger API - create()', function () {
         expect(function () {dm.create('Country', {id: ['DE'], name: 'Deutschland'})}).to.throw(regexp)
         expect(function () {dm.create('Country', {id: {id: 'DE'}, name: 'Deutschland'})}).to.throw(regexp)
         expect(function () {dm.create('Country', {id: function () {}, name: 'Deutschland'})}).to.throw(regexp)
+        expect(function () {dm.create('Person', {id: "Foo", born: 'anywhen', organizations: 'Unknown'})}).to.throw(regexp)
     })
 
     it('should check for undefined class', function () {

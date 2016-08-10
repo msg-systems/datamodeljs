@@ -1,13 +1,207 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta http-equiv="content-type" content="text/html; charset=utf-8">
-        <link href="index.css" rel="stylesheet" type="text/css"/>
-        <title>DataModelJS</title>
-    </head>
-    <body>
-        <h1>DataModelJS</h1>
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <link href="css/TypoPRO-OpenSans/TypoPRO-OpenSans.css" rel="stylesheet" type="text/css"/>
+    <link href="css/TypoPRO-BebasNeue/TypoPRO-BebasNeue.css" rel="stylesheet" type="text/css"/>
+    <link href="css/TypoPRO-DejaVu/TypoPRO-DejaVu.css" rel="stylesheet" type="text/css"/>
+    <link href="css/gridless/eg12.css" rel="stylesheet" type="text/css"/>
+    <link href="css/font-awesome/css/font-awesome.css" rel="stylesheet" type="text/css"/>
+    <link href="index.css" rel="stylesheet" type="text/css"/>
+    <script src="lib/datamodel.js" type="text/javascript"></script>
+    <script src="lib/jquery.min.js" type="text/javascript"></script>
+    <script src="lib/syntax.browser.js" type="text/javascript"></script>
+    <script src="index.js" type="text/javascript"></script>
+    <title>datamodeljs Demo</title>
+</head>
+<body>
+<a href="https://github.com/msg-systems/datamodeljs">
+    <img style="position: absolute; top: 0; right: 0; border: 0;"
+         src="https://camo.githubusercontent.com/365986a132ccd6a44c23a9169022c0b5c890c387/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f7265645f6161303030302e706e67"
+         alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png"></a>
 
-        <a href="https://github.com/msg-systems/datamodeljs">Repository</a>
-    </body>
+<h1>datamodeljs</h1>
+
+<h2>Data Model Management Library for JavaScript</h2>
+<div class="g-row">
+    <div class="g-col-11-12">
+        The main goal of datamodeljs is to ensure a consistent and reliable data structure when communicating with a backend service.
+        In all projects the data structure between backend and frontend can be considered as an interface contract. If either side changes the structure of the data - the
+        counterpart has problems validating and handling the data.
+        In order to avoid long lasting debugging sessions in a JavaScript application we use datamodeljs to read in and validate the delivered data against the defined entity model
+        classes.
+        A secondary goal of datamodeljs is the ability to manage entity objects and keep track of their states (e.g. newly created, marked as changed, marked for deletion)
+        This entity object management allows the JavaScript application to manipulate business objects on block before sending them anywhere.
+        In order to be able to handle complex business objects datamodeljs implements a bi-directional entity model.
+        See the <a href="https://github.com/msg-systems/datamodeljs">Github <i class="fa fa-github"></i> source code</a>
+        for more documentation and download options via NPM.
+    </div>
+</div>
+
+<h2>Simple Example (interactive)</h2>
+<div class="g-row">
+    <div class="g-col-11-12">
+        This example shows the definition of entity classes using native types. You can use the <span class="caption">class definition</span> and the <span class="caption">object input</span>
+        for trying some around. The <span class="caption">output console</span> will show you immediatly any error (as good as the javascript error messages will be). If everything
+        is working you will see the resulting entity object(s) in the output. Some attributes are marked in gray because they are entity object internal and would by default not be
+        printed or cloned.<br>&nbsp;
+    </div>
+</div>
+<div class="g-row">
+    <div class="g-col-4-12 box-class-def disabled">
+        <div class="caption">Class definition (JavaScript): &nbsp; <i class="fa fa-edit"></i></div>
+        <div class="code syntax" data-syntax="javascript"><span class="syntax-keyword">var</span> dm = datamodeljs.dm()
+
+dm.define(<span class="syntax-literal">"Person"</span>,
+<textarea id="simpleExampleSpec">{
+  "id": "@number",
+  "birthdate": "number",
+  "firstname": "string",
+  "lastname": "string",
+  "married": "boolean"
+}</textarea>
+)</div>
+    </div>
+    <div class="g-col-3-12 box-obj-input disabled">
+        <div class="caption">Object input (JSON): &nbsp; <i class="fa fa-edit"></i></div>
+        <div class="code syntax" data-syntax="javascript">dm.create(<span class="syntax-literal">"Person"</span>,
+<textarea id="simpleExampleObjs">{
+  "id": 1,
+  "birthdate": 284425200000,
+  "firstname": "Max",
+  "lastname": "Mustermann",
+  "married": false
+}</textarea>
+)</div>
+    </div>
+    <div class="g-col-1-12 box-arrow">
+        <i class="fa fa-chevron-circle-right"></i>
+    </div>
+    <div class="g-col-4-12 box-obj-output">
+        <div class="caption">Output console: &nbsp; <i class="fa fa-eye"></i></div>
+        <div id="simpleExampleConsole" class="code syntax" data-syntax="console"></div>
+    </div>
+</div>
+
+<h2>Relationship Example</h2>
+<div class="g-row">
+    <div class="g-col-11-12">
+        This example shows the definition of entity classes defining relationships to other classes. The object input shows two different ways to relate objects together.<br>
+        The first option is to simply relate to the unique id of the other object. TodoTask with id = 1 is created and referenced in the TodoList "tasks" list. <br>
+        The second option is to simply create the relationship with inline elements. TodoTask with id = 2 is created on the fly as the TodoList is created since it is embedded in the TodoList.<br>&nbsp;
+    </div>
+</div>
+<div class="g-row">
+    <div class="g-col-3-12 box-obj-output">
+        <div class="caption">Class definition (JavaScript): &nbsp; <i class="fa fa-eye"></i></div>
+        <div class="codify code syntax" data-syntax="javascript">var dm = datamodeljs.dm()
+
+dm.define("TodoList", {
+  "id": "@number",
+  "name": "string",
+  "tasks": "TodoTask*"
+})
+
+dm.define("TodoTask", {
+  "id": "@number",
+  "assignee": "string",
+  "desc": "string",
+  "state": "string"
+})
+    </div>
+</div>
+    <div class="g-col-4-12 box-obj-output">
+        <div class="caption">Object creation (JavaScript): &nbsp; <i class="fa fa-eye"></i></div>
+        <div class="codify code syntax" data-syntax="javascript">dm.create("TodoTask", {
+  "id": 1,
+  "assignee": "Max Mustermann",
+  "desc": "Cut the grass",
+  "state": "open"
+})
+
+dm.create("TodoList", {
+  "id": 1,
+  "name": "Tasks@Home",
+  "tasks": [
+    1,
+    {
+      "id": 2,
+      "assignee": "Susan Mustermann",
+      "desc": "Wash the dishes",
+      "state": "done"
+    }
+  ]
+})</div>
+    </div>
+    <div class="g-col-1-12 box-arrow">
+        <i class="fa fa-chevron-circle-right"></i>
+    </div>
+    <div class="g-col-4-12 box-obj-output">
+        <div class="caption">Output console: &nbsp; <i class="fa fa-eye"></i></div>
+        <div  id="relationShipConsole" class="code syntax" data-syntax="console"></div>
+    </div>
+</div>
+
+<h2>Bi-directional Example</h2>
+<div class="g-row">
+    <div class="g-col-11-12">
+        This example shows the definition of entity classes defining bi-directional relationships between classes.<br>
+        In this example it doesn't matter in which order the objects are created. You can create the <code>Milestone</code> at first or the <code>Task</code>.
+        Datamodeljs recognizes stub objects (referenced, but not yet loaded objects) and handles the bi-directional reference with the creation of a stub object which
+        is replaced with the real object later on. Don't be scared of the output of this example - we handled the cyclomatic reference by breaking it into a <code>∞cycle∞</code> warning<br>&nbsp;
+    </div>
+</div>
+<div class="g-row">
+    <div class="g-col-3-12 box-obj-output">
+        <div class="caption">Class definition (JavaScript): &nbsp; <i class="fa fa-eye"></i></div>
+        <div class="codify code syntax" data-syntax="javascript">var dm = datamodeljs.dm()
+
+dm.define("Milestone", {
+  "id": "@string",
+  "name": "string",
+  "tasks": "Task*"
+})
+
+dm.define("Task", {
+  "id": "@number",
+  "assignee": "string",
+  "desc": "string",
+  "milestone": "Milestone"
+})</div>
+    </div>
+    <div class="g-col-4-12 box-obj-output">
+        <div class="caption">Object creation (JavaScript): &nbsp; <i class="fa fa-eye"></i></div>
+        <div class="codify code syntax" data-syntax="javascript">dm.create("Milestone", {
+  "id": "2016/09/01",
+  "name": "Release 1.0.0",
+  "tasks": [1, 2]
+})
+
+dm.create("Task", {
+  "id": 1,
+  "assignee": "project leader",
+  "desc": "Setup project",
+  "milestone": "2016/09/01"
+})
+
+dm.create("Task", {
+  "id": 2,
+  "assignee": "build manager",
+  "desc": "Prepare build environment",
+  "milestone": "2016/09/01"
+})</div>
+    </div>
+    <div class="g-col-1-12 box-arrow">
+        <i class="fa fa-chevron-circle-right"></i>
+    </div>
+    <div class="g-col-4-12 box-obj-output">
+        <div class="caption">Output console: &nbsp; <i class="fa fa-eye"></i></div>
+        <div  id="biDirectionalConsole" class="code syntax" data-syntax="console"></div>
+    </div>
+</div>
+<p>
+    Copyright © 2015-2016 <a href="https://www.msggroup.com/">msg systems ag</a><br>
+    Available under MIT distribution license.
+</p>
+</body>
 </html>

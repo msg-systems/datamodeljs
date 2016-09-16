@@ -13,7 +13,9 @@ In order to avoid long lasting debugging sessions in a JavaScript application we
 
 This entity object management allows the JavaScript application to manipulate business objects on block before sending them anywhere.
 
-In order to be able to handle complex business objects *datamodeljs* implements a bi-directional entity model. Examples can be seen in "Defining entity classes" 
+In order to be able to handle complex business objects *datamodeljs* implements a bi-directional entity model. Examples can be seen in "Defining entity classes"
+
+The [Github page](http://msg-systems.github.io/datamodeljs/) contains an interactive example and demonstrates the possibilities with *datamodeljs*. 
 
 # Entity object states
 

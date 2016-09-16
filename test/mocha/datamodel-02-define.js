@@ -56,6 +56,8 @@ describe('DatamodelJS Datamanger API - define()', function () {
         expect(function () {dm.define('Car', {id: '@string', type: '@string'}) }).to.throw(regexp)
     })
 
+    // TODO test primary not as number or string
+
     it('should check for using reserved keywords', function () {
         var regexp = /^.*?invalid class spec - attribute '(_className|_isTransient|_isStub|_isDirty|_isDeleted)' is a reserved keyword.*?$/
         expect(function () {dm.define('Keyword', {id: '@string', _className: 'string'}) }).to.throw(regexp)

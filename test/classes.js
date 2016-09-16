@@ -27,7 +27,8 @@ module.exports.defineClassesInDatamanager = function (dm) {
         hobbies: 'string*',
         proxies: 'Person*',
         supervisor: 'Person?',
-        organizations: 'OrgUnit+'
+        organizations: 'OrgUnit+',
+        address: 'object'
     });
 
 

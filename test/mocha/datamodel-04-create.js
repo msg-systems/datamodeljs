@@ -141,6 +141,14 @@ describe('DatamodelJS Datamanger API - create()', function () {
         expect(dm.findById('Person', 'RSE')).to.not.exist
     })
 
+    it('should not create transient objects when primary key is missing', function () {
+        expect(function () {dm.create('OrgUnit', {
+            owner: [{firstName: 'Biebl', organizations: ['XT'], notAAttribute: "Test"}]
+        })}).to.throw(/^.*?class.*?has no field.*?defined. Object is not valid..*?$/)
+        expect(dm.findAllTransient("OrgUnit")).to.have.lengthOf(0)
+        expect(dm.findAllTransient("Person")).to.have.lengthOf(0)
+    })
+
     //                      _                                       _
     //   ___ _ __ ___  __ _| |_ ___            __ _  ___   ___   __| |
     //  / __| '__/ _ \/ _` | __/ _ \  _____   / _` |/ _ \ / _ \ / _` |
@@ -160,7 +168,7 @@ describe('DatamodelJS Datamanger API - create()', function () {
     })
 
     it('should create entities with entity references (objects)', function () {
-        var germany = dm.findById('Country', 'DE')
+        var germany = Object.assign({}, dm.findById('Country', 'DE'))
         var msg = dm.create('OrgUnit', {
             id: 'msg',
             name: 'msg systems ag',
@@ -168,7 +176,7 @@ describe('DatamodelJS Datamanger API - create()', function () {
         })
         expect(msg).to.be.an('object')
         expect(msg.country).to.be.an('object')
-        expect(msg.country).to.be.equal(germany)
+        expect(msg.country).to.be.equal(dm.findById('Country', 'DE'))
     })
 
     it('should create entities with entity references (id only)', function () {
@@ -303,6 +311,21 @@ describe('DatamodelJS Datamanger API - create()', function () {
         expect(rse.lastName).to.be.equal('Engelschall')
     })
 
+    it('should create cascaded transient objects when primary key is missing', function () {
+        var agile = dm.create('OrgUnit', {
+            id: 'CoC Agile',
+            owner: [{firstName: 'Biebl', organizations: ['XT']}]
+        })
+        expect(agile).to.be.an('object')
+        expect(agile.owner).to.have.lengthOf(1)
+        expect(agile.owner[0]).to.have.property('firstName', 'Biebl')
+        expect(agile.owner[0]).to.have.property('_isTransient', true)
+        expect(agile.owner[0]).to.have.property('_className', 'Person')
+
+        dm.destroy("Person", agile.owner[0], true)
+        dm.destroy("OrgUnit", agile, true)
+    })
+
     it('should create transient objects when primary key is missing', function () {
         var biebl = dm.create('Person', {firstName: 'Biebl', organizations: ['XT']})
         expect(biebl).to.be.an('object')
@@ -317,6 +340,25 @@ describe('DatamodelJS Datamanger API - create()', function () {
         expect(agile.owner[0]).to.have.property('firstName', 'Biebl')
         expect(agile.country).to.not.exist
         expect(agile.owner[0]).to.have.property('_isTransient', true)
+        expect(agile.owner[0]).to.equal(biebl)
+
+        dm.destroy("Person", biebl, true)
+        dm.destroy("OrgUnit", agile, true)
+    })
+
+    it('should create cascaded transient objects when primary key is missing', function () {
+        var agile = dm.create('OrgUnit', {
+            owner: [{firstName: 'Biebl', organizations: ['XT']}]
+        })
+        expect(agile).to.be.an('object')
+        expect(agile).to.have.property('_isTransient', true)
+        expect(agile.owner).to.have.lengthOf(1)
+        expect(agile.owner[0]).to.have.property('firstName', 'Biebl')
+        expect(agile.country).to.not.exist
+        expect(agile.owner[0]).to.have.property('_isTransient', true)
+
+        dm.destroy("Person", dm.findAllTransient("Person")[0], true)
+        dm.destroy("OrgUnit", dm.findAllTransient("OrgUnit")[0], true)
     })
 
     it('should not expose internal properties when cloning or stringifying entities', function () {
@@ -350,5 +392,57 @@ describe('DatamodelJS Datamanger API - create()', function () {
         expect(abc_stub.name).to.be.equal('ABC OrgUnit')
 
         dm.destroy('Person', ihme, true)
+    })
+
+    it('should create entities with a JavaScript object as attribute', function () {
+        var lze = dm.create('Person', {
+            id: 'LZE',
+            firstName: 'Linda',
+            lastName: 'Zeman',
+            supervisor: 'RSE',
+            organizations: ['XT'],
+            address: {
+                street: "Lindenstraße",
+                number: "10"
+            }
+        })
+
+        expect(lze).to.exist
+        expect(lze._isStub).to.be.false
+        expect(lze.address).to.exist
+        expect(lze).to.have.ownProperty('address')
+        expect(lze.address).to.have.not.ownProperty('_className')
+        expect(lze.address.street).to.be.equal('Lindenstraße')
+
+        dm.destroy('Person', lze, true)
+    })
+
+    it('should create entities with cascaded entities that have JavaScript object as attribute', function () {
+        var ph = dm.create('OrgUnit', {
+            id: 'ph',
+            name: 'Planet Home',
+            owner: {
+                id: 'LZE',
+                firstName: 'Linda',
+                lastName: 'Zeman',
+                supervisor: 'RSE',
+                organizations: ['XT'],
+                address: {
+                    street: "Lindenstraße",
+                    number: "10"
+                }
+            }
+        })
+
+        var lze = dm.findById('Person', 'LZE')
+        expect(lze).to.exist
+        expect(lze._isStub).to.be.false
+        expect(lze.address).to.exist
+        expect(lze).to.have.ownProperty('address')
+        expect(lze.address).to.have.not.ownProperty('_className')
+        expect(lze.address.street).to.be.equal('Lindenstraße')
+
+        dm.destroy('Person', lze, true)
+        dm.destroy('OrgUnit', ph, true)
     })
 })
